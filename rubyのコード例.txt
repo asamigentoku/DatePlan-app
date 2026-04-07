@@ -1,0 +1,28 @@
+ルビーからAPIを叩く
+require 'httparty'
+
+response = HTTParty.get("https://example.com/api/users/1")
+puts response.code
+puts response.parsed_response
+
+response = HTTParty.post(
+  "https://example.com/api/users",
+  headers: { 'Content-Type' => 'application/json' },
+  body: { user: { name: "太郎" } }.to_json
+)
+
+puts response.code
+puts response.parsed_response
+
+data = response.parsed_response
+puts data["id"]
+puts data["name"]
+辞書にように受け取ることができる
+
+認証
+Gemを追加（bcrypt
+class User < ApplicationRecord
+  has_secure_password
+endで簡単に実装することができる
+
+
