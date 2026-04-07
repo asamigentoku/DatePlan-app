@@ -1,0 +1,215 @@
+openapi: 3.0.3
+info:
+  title: Date Planner API
+  description: |
+    デートプラン作成・管理アプリのAPI定義。
+    認証、プラン生成、お気に入り、履歴管理を含みます。
+  version: 1.0.0
+
+servers:
+  - url: https://api.example.com/api/v1
+
+paths:
+  # --- デートプラン生成 ---
+  /makeplan:
+    post:
+      tags: [Plan]
+      summary: デートプランの新規作成
+      description: ユーザーの要望に基づき、AIが最適なプランを1つ生成します。
+      operationId: makePlan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlanRequest'
+      responses:
+        '200':
+          description: プラン作成成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlanResponse'
+
+  # --- 認証系 ---
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: ログイン
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string}
+                password: { type: string, format: password }
+      responses:
+        '200':
+          description: ログイン成功。アクセストークンを返却。
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: ログインユーザー情報の取得
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: ユーザー情報
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  # --- お気に入り ---
+  /spots/{id}/favorite:
+    post:
+      tags: [Favorite]
+      summary: スポットをお気に入り登録/解除
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 成功
+
+  /users/me/favorites:
+    get:
+      tags: [Favorite]
+      summary: お気に入りスポット一覧の取得
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: お気に入りリスト
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Spot'
+
+  # --- 履歴・共有 ---
+  /users/me/history:
+    get:
+      tags: [Plan]
+      summary: 過去に作成したプラン履歴の取得
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: プラン履歴一覧
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlanResponse'
+
+  /plans/{id}/share:
+    get:
+      tags: [Plan]
+      summary: 共有用URL/データの取得
+      description: 将来的にWebビューなどで誰でも閲覧できるリンクを生成します。
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: 共有情報
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  share_url: { type: string, format: url }
+                  plan_data: { $ref: '#/components/schemas/PlanResponse' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # --- ユーザー定義 ---
+    User:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+
+    # --- リクエスト定義 ---
+    PlanRequest:
+      type: object
+      required: [theme, time_slot, start_time, locations, relationship, has_car]
+      properties:
+        theme: { type: array, items: { type: string, example: "新宿でまったりカフェ巡り" } }
+        budget: { type: integer, nullable: true, default: null }
+        desired_spots: { type: array, items: { type: string } }
+        time_slot: { type: string, enum: [朝, 昼, 夜] }
+        start_time: { type: integer, example: 1100 }
+        end_time: { type: integer, nullable: true }
+        locations: { type: array, items: { type: string } }
+        relationship: { type: string, example: "付き合いたて" }
+        has_car: { type: boolean, example: false }
+
+    # --- レスポンス定義 ---
+    PlanResponse:
+      type: object
+      properties:
+        plan_id: { type: integer }
+        theme: { type: string }
+        weather:
+          type: object
+          properties:
+            status: { type: string, enum: [晴れ, 雨, 曇り] }
+            temperature: { type: number }
+            precipitation_probability: { type: integer }
+        description: { type: string }
+        spots: { type: array, items: { $ref: '#/components/schemas/Spot' } }
+        transfers: { type: array, items: { $ref: '#/components/schemas/Transfer' } }
+
+    Spot:
+      type: object
+      properties:
+        display_order: { type: integer }
+        name: { type: string }
+        description: { type: string }
+        photos: { type: array, items: { type: string } }
+        category: { type: string }
+        stay_duration: { type: integer }
+        price_range: { type: integer }
+        location_type: { type: string, enum: [屋内, 屋外] }
+        rating: { type: number }
+        congestion_level: { type: integer }
+        business_hours:
+          type: object
+          properties:
+            start: { type: integer }
+            end: { type: integer }
+
+    Transfer:
+      type: object
+      properties:
+        display_order: { type: integer }
+        from: { type: string }
+        to: { type: string }
+        duration: { type: integer }
+        transport_mode: { type: string }
+  
