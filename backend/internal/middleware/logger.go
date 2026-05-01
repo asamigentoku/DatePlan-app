@@ -3,9 +3,9 @@ package middleware
 import (
 	"time"
 
+	"github.com/asamigentoku/DatePlan-app/pkg/logger"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
-	"github.com/asamigentoku/DatePlan-app/pkg/logger"
 )
 
 func Logger() gin.HandlerFunc {

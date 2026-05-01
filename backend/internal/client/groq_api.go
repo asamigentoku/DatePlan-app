@@ -50,12 +50,11 @@ func (c *GroqClient) GenerateDatePlan(prompt string) (*dto.PlanResponse, error) 
 	systemPrompt := `あなたはデートプランを提案するアシスタントです。
 必ず以下のJSON形式のみで返してください。
 {
-    "plan_id": 1,
     "theme": "テーマ",
     "weather": {
         "status": "晴れ",
         "temperature": 20.0,
-        "precip_prob": 10
+        "season": "春"
     },
     "description": "プランの説明",
     "spots": [
