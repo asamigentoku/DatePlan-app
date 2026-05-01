@@ -1,2 +1,0 @@
-class Spot < ApplicationRecord
-end
