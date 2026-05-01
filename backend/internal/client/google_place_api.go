@@ -28,11 +28,24 @@ type Location struct {
 	Lng float64 `json:"lng"`
 }
 
-func SearchPlaces(query, apiKey string) ([]Place, error) {
+// GooglePlacesClient 構造体
+type GooglePlacesClient struct {
+	ApiKey string
+}
+
+// NewGooglePlacesClient コンストラクタ
+func NewGooglePlacesClient(apiKey string) *GooglePlacesClient {
+	return &GooglePlacesClient{
+		ApiKey: apiKey,
+	}
+}
+
+// SearchPlaces をメソッドに変更 (レシーバーを加える)
+func (c *GooglePlacesClient) SearchPlaces(query string) ([]Place, error) {
 	// クエリパラメータの組み立て
 	params := url.Values{}
 	params.Set("query", query)
-	params.Set("key", apiKey)
+	params.Set("key", c.ApiKey) // 構造体からAPIキーを使う
 
 	endpoint := "https://maps.googleapis.com/maps/api/place/textsearch/json?" + params.Encode()
 
@@ -43,16 +56,13 @@ func SearchPlaces(query, apiKey string) ([]Place, error) {
 	}
 	defer resp.Body.Close()
 
-	// レスポンスの読み取り
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("レスポンス読み取り失敗: %w", err)
 	}
 
-	// JSONのパース
 	var placesResp PlacesResponse
-	//string型のレスポンスを解析
-	//json->構造体に変換する
+	//jsonのデータを自分の構造体に変換する
 	if err := json.Unmarshal(body, &placesResp); err != nil {
 		return nil, fmt.Errorf("JSONパース失敗: %w", err)
 	}
