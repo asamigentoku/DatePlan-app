@@ -7,11 +7,12 @@ import (
 
 // goの構造体、goにclassは存在しない
 type Config struct {
-	Env              string
-	Port             string
-	DBUrl            string
-	JWTSecret        string
-	GoogleMap_APIKEY string
+	Env             string
+	Port            string
+	DBUrl           string
+	JWTSecret       string
+	GoogleMapAPIKey string
+	GROQAPIKEY      string
 }
 
 func Load() (*Config, error) {
@@ -22,13 +23,13 @@ func Load() (*Config, error) {
 	viper.SetDefault("ENV", "development")
 	viper.SetDefault("PORT", "8080")
 	viper.AutomaticEnv()
-	viper.SetDefault("GoogleMap_APIKEY", "None")
 
 	return &Config{
-		Env:              viper.GetString("ENV"),
-		Port:             viper.GetString("PORT"),
-		DBUrl:            viper.GetString("DATABASE_URL"),
-		JWTSecret:        viper.GetString("JWT_SECRET"),
-		GoogleMap_APIKEY: viper.GetString("GoogleMap_APIKEY"),
+		Env:             viper.GetString("ENV"),
+		Port:            viper.GetString("PORT"),
+		DBUrl:           viper.GetString("DATABASE_URL"),
+		JWTSecret:       viper.GetString("JWT_SECRET"),
+		GoogleMapAPIKey: viper.GetString("GOOGLE_MAP_API_KEY"),
+		GROQAPIKEY:      viper.GetString("GROQ_API_KEY"),
 	}, nil
 }

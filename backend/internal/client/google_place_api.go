@@ -30,13 +30,13 @@ type Location struct {
 
 // GooglePlacesClient 構造体
 type GooglePlacesClient struct {
-	ApiKey string
+	apiKey string
 }
 
 // NewGooglePlacesClient コンストラクタ
 func NewGooglePlacesClient(apiKey string) *GooglePlacesClient {
 	return &GooglePlacesClient{
-		ApiKey: apiKey,
+		apiKey: apiKey,
 	}
 }
 
@@ -45,7 +45,8 @@ func (c *GooglePlacesClient) SearchPlaces(query string) ([]Place, error) {
 	// クエリパラメータの組み立て
 	params := url.Values{}
 	params.Set("query", query)
-	params.Set("key", c.ApiKey) // 構造体からAPIキーを使う
+	params.Set("key", c.apiKey)
+	params.Set("language", "ja") // 構造体からAPIキーを使う
 
 	endpoint := "https://maps.googleapis.com/maps/api/place/textsearch/json?" + params.Encode()
 
