@@ -3,15 +3,15 @@ package repository
 import (
 	"errors"
 
-	"github.com/asamigentoku/DatePlan-app/internal/model/rds"
+	"github.com/asamigentoku/DatePlan-app/internal/model/rds_models"
 	"gorm.io/gorm"
 )
 
 type UserRepository interface {
-	FindAll() ([]rds.User, error)
-	FindByID(id uint) (*rds.User, error)
-	Create(user *rds.User) error
-	Update(user *rds.User) error
+	FindAll() ([]rds_models.User, error)
+	FindByID(id uint) (*rds_models.User, error)
+	Create(user *rds_models.User) error
+	Update(user *rds_models.User) error
 	Delete(id uint) error
 }
 
@@ -23,18 +23,18 @@ func NewUserRepository(db *gorm.DB) UserRepository {
 	return &userRepository{db: db}
 }
 
-func (r *userRepository) FindAll() ([]rds.User, error) {
+func (r *userRepository) FindAll() ([]rds_models.User, error) {
 	//goではリストが[]で最小に描かれる
-	var users []rds.User
+	var users []rds_models.User
 	//Find: GORMのメソッドで、「条件に合うデータをすべて取ってくる」という意味です。
 	//参照渡しなので見つけたデータをそのまま代入させるから
 	err := r.db.Find(&users).Error
 	return users, err
 }
 
-func (r *userRepository) FindByID(id uint) (*rds.User, error) {
+func (r *userRepository) FindByID(id uint) (*rds_models.User, error) {
 	//型の定義
-	var user rds.User
+	var user rds_models.User
 	//id合致する最初のものを取得して参照のuserに渡す
 	err := r.db.First(&user, id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -43,15 +43,15 @@ func (r *userRepository) FindByID(id uint) (*rds.User, error) {
 	return &user, err
 }
 
-func (r *userRepository) Create(user *rds.User) error {
+func (r *userRepository) Create(user *rds_models.User) error {
 	return r.db.Create(user).Error
 }
 
-func (r *userRepository) Update(user *rds.User) error {
+func (r *userRepository) Update(user *rds_models.User) error {
 	return r.db.Save(user).Error
 }
 
 func (r *userRepository) Delete(id uint) error {
 	// gorm.Model を使っていると論理削除になる
-	return r.db.Delete(&rds.User{}, id).Error
+	return r.db.Delete(&rds_models.User{}, id).Error
 }

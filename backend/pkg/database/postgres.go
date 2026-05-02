@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/asamigentoku/DatePlan-app/internal/model/rds"
+	"github.com/asamigentoku/DatePlan-app/internal/model/rds_models"
 	"github.com/asamigentoku/DatePlan-app/pkg/config"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -45,7 +45,7 @@ func Migrate(db *gorm.DB) error {
 	//データベースにテーブルを登録する
 	return db.AutoMigrate(
 		//構造体が存在する場所自体から取得する
-		&rds.User{},
+		&rds_models.User{},
 		// 追加モデルをここに列挙する
 	)
 }

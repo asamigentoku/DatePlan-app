@@ -1,11 +1,13 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"math/rand/v2"
 
 	"github.com/asamigentoku/DatePlan-app/internal/client"
 	"github.com/asamigentoku/DatePlan-app/internal/dto"
+	"github.com/asamigentoku/DatePlan-app/internal/repository"
 )
 
 type PlanService interface {
@@ -18,6 +20,7 @@ type planService struct {
 	groqclient      *client.GroqClient
 	weatherclient   *client.WeatherClient
 	nominatimclient *client.NominatimClient
+	placesCache     repository.PlacesCacheRepository
 }
 
 // NewPlanService クライアントを受け取って初期化するコンストラクタ
@@ -25,18 +28,21 @@ func NewPlanService(
 	google *client.GooglePlacesClient,
 	groq *client.GroqClient,
 	weather *client.WeatherClient,
-	nomi *client.NominatimClient) PlanService {
+	nomi *client.NominatimClient,
+	placesCache repository.PlacesCacheRepository) PlanService {
 	return &planService{
 		googleClient:    google,
 		groqclient:      groq,
 		weatherclient:   weather,
 		nominatimclient: nomi,
+		placesCache:     placesCache,
 	}
 }
 
 func (s *planService) MakePlan(req *dto.CreatePlanRequest) (*dto.PlanResponse, error) {
 	cities := req.Locations
 	wanted_places := req.DesiredPlaces
+	ctx := context.Background()
 	// 乱数のシード設定（Go 1.20未満の場合は必要。1.20以降は rand.Seed は推奨されませんが、動作します）
 	// 1. バリデーション
 	if len(cities) == 0 || len(wanted_places) == 0 {
@@ -64,10 +70,22 @@ func (s *planService) MakePlan(req *dto.CreatePlanRequest) (*dto.PlanResponse, e
 	fmt.Printf("天気: %+v\n", weather)
 
 	searchQuery := fmt.Sprintf("%s %s", randomCity, randomPlace)
-	places, err := s.googleClient.SearchPlaces(searchQuery)
-	if err != nil {
-		return nil, fmt.Errorf("failed to search places: %w", err)
+	cachedPlaces, err := s.placesCache.GetCache(ctx, randomCity, randomPlace)
+	var places []dto.Place
+	if err == nil && cachedPlaces != nil {
+		fmt.Println("⚡ キャッシュから取得")
+		places = *cachedPlaces // ← .Results を取り出す
+	} else {
+		places, err := s.googleClient.SearchPlaces(searchQuery)
+		if err != nil {
+			return nil, fmt.Errorf("failed to search places: %w", err)
+		}
+
+		if cacheErr := s.placesCache.SetCache(ctx, randomCity, randomPlace, places); cacheErr != nil {
+			fmt.Println("⚠️ キャッシュ保存失敗:", cacheErr)
+		}
 	}
+
 	//fmt.Printf("取得したスポット: %+v\n", places)
 	prompt := fmt.Sprintf("以下のスポットから一つ追加して、デートプランを考えて: %v %v", places, weather)
 	//description, err := s.groqclient.Chat(prompt)

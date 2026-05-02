@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/asamigentoku/DatePlan-app/internal/model/rds"
+	"github.com/asamigentoku/DatePlan-app/internal/model/rds_models"
 	"github.com/asamigentoku/DatePlan-app/internal/service"
 	"github.com/asamigentoku/DatePlan-app/pkg/response"
 	"github.com/gin-gonic/gin"
@@ -46,7 +46,7 @@ func (h *UserHandler) Get(c *gin.Context) {
 }
 
 func (h *UserHandler) Create(c *gin.Context) {
-	var user rds.User
+	var user rds_models.User
 	if err := c.ShouldBindJSON(&user); err != nil {
 		response.BadRequest(c, err.Error())
 		return
@@ -64,7 +64,7 @@ func (h *UserHandler) Update(c *gin.Context) {
 		response.BadRequest(c, "invalid id")
 		return
 	}
-	var user rds.User
+	var user rds_models.User
 	if err := c.ShouldBindJSON(&user); err != nil {
 		response.BadRequest(c, err.Error())
 		return

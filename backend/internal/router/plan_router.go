@@ -3,6 +3,7 @@ package router
 import (
 	"github.com/asamigentoku/DatePlan-app/internal/client"
 	"github.com/asamigentoku/DatePlan-app/internal/handler"
+	"github.com/asamigentoku/DatePlan-app/internal/repository"
 	"github.com/asamigentoku/DatePlan-app/internal/service"
 	"github.com/asamigentoku/DatePlan-app/pkg/config"
 	"github.com/asamigentoku/DatePlan-app/pkg/database"
@@ -16,8 +17,9 @@ func setupPlanRouters(rg *gin.RouterGroup, cfg *config.Config, db *gorm.DB, mong
 	groqClient := client.NewGroqClient(cfg.GROQAPIKEY)
 	weatherClient := client.NewWeatherClient()
 	nominatimClient := client.NewNominatimClient()
+	placeCacheRepo := repository.NewPlacesCacheRepository(mongodb)
 
-	planSvc := service.NewPlanService(googleClient, groqClient, weatherClient, nominatimClient)
+	planSvc := service.NewPlanService(googleClient, groqClient, weatherClient, nominatimClient, placeCacheRepo)
 	planH := handler.NewPlanHandler(planSvc)
 
 	plans := rg.Group("/plans")
