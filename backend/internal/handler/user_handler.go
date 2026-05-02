@@ -4,10 +4,10 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/gin-gonic/gin"
-	"github.com/asamigentoku/DatePlan-app/internal/model"
+	"github.com/asamigentoku/DatePlan-app/internal/model/rds"
 	"github.com/asamigentoku/DatePlan-app/internal/service"
 	"github.com/asamigentoku/DatePlan-app/pkg/response"
+	"github.com/gin-gonic/gin"
 )
 
 type UserHandler struct {
@@ -46,7 +46,7 @@ func (h *UserHandler) Get(c *gin.Context) {
 }
 
 func (h *UserHandler) Create(c *gin.Context) {
-	var user model.User
+	var user rds.User
 	if err := c.ShouldBindJSON(&user); err != nil {
 		response.BadRequest(c, err.Error())
 		return
@@ -64,7 +64,7 @@ func (h *UserHandler) Update(c *gin.Context) {
 		response.BadRequest(c, "invalid id")
 		return
 	}
-	var user model.User
+	var user rds.User
 	if err := c.ShouldBindJSON(&user); err != nil {
 		response.BadRequest(c, err.Error())
 		return

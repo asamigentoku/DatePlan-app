@@ -68,7 +68,7 @@ func (s *planService) MakePlan(req *dto.CreatePlanRequest) (*dto.PlanResponse, e
 	if err != nil {
 		return nil, fmt.Errorf("failed to search places: %w", err)
 	}
-	fmt.Printf("取得したスポット: %+v\n", places)
+	//fmt.Printf("取得したスポット: %+v\n", places)
 	prompt := fmt.Sprintf("以下のスポットから一つ追加して、デートプランを考えて: %v %v", places, weather)
 	//description, err := s.groqclient.Chat(prompt)
 	//if err != nil {

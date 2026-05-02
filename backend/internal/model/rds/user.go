@@ -1,4 +1,4 @@
-package model
+package rds
 
 import "gorm.io/gorm"
 
