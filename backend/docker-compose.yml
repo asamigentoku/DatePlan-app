@@ -9,6 +9,28 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+  mongodb:
+    image: mongo:6                  # ← buildをやめて公式イメージを直接使う
+    container_name: mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    environment: # ← Dockerfileの環境変数をここに移す
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - app_network
+
 
 volumes:
   pgdata:
+  mongodb_data:
+    name: mongodb_data
+    driver: local
+
+
+networks:
+  app_network:
+    driver: bridge
