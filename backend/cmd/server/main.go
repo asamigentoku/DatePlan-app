@@ -33,7 +33,13 @@ func main() {
 		log.Fatal("Failed to migrate database:", err)
 	}
 
-	r := router.New(cfg, db)
+	//mongoDBの初期化
+	mongodb, err := database.NewMongoClient(cfg.MongoUri, cfg.MongoDbName)
+	if err != nil {
+		log.Fatal("Failed to connect Mongodatabase:", err)
+	}
+
+	r := router.New(cfg, db, mongodb)
 	if err := r.Run(":" + cfg.Port); err != nil {
 		log.Fatal("Failed to run server:", err)
 	}

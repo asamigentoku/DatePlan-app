@@ -13,6 +13,8 @@ type Config struct {
 	JWTSecret       string
 	GoogleMapAPIKey string
 	GROQAPIKEY      string
+	MongoUri        string
+	MongoDbName     string
 }
 
 func Load() (*Config, error) {
@@ -31,5 +33,7 @@ func Load() (*Config, error) {
 		JWTSecret:       viper.GetString("JWT_SECRET"),
 		GoogleMapAPIKey: viper.GetString("GOOGLE_MAP_API_KEY"),
 		GROQAPIKEY:      viper.GetString("GROQ_API_KEY"),
+		MongoUri:        viper.GetString("MONGO_URI"),
+		MongoDbName:     viper.GetString("MONGO_DB_NAME"),
 	}, nil
 }
