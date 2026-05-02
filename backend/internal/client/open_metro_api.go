@@ -6,6 +6,8 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+
+	"github.com/asamigentoku/DatePlan-app/internal/dto"
 )
 
 type WeatherClient struct{}
@@ -15,28 +17,10 @@ func NewWeatherClient() *WeatherClient {
 }
 
 type WeatherResponse struct {
-	Daily DailyWeather `json:"daily"`
+	Daily dto.DailyWeather `json:"daily"`
 }
 
-type DailyWeather struct {
-	Time          []string  `json:"time"`
-	TempMax       []float64 `json:"temperature_2m_max"`
-	TempMin       []float64 `json:"temperature_2m_min"`
-	Precipitation []float64 `json:"precipitation_sum"`
-	PrecipProb    []int     `json:"precipitation_probability_max"`
-	WeatherCode   []int     `json:"weathercode"`
-}
-
-type TodayWeather struct {
-	Date       string
-	TempMax    float64
-	TempMin    float64
-	Precip     float64
-	PrecipProb int
-	Status     string
-}
-
-func (c *WeatherClient) GetWeather(lat, lng float64) (*TodayWeather, error) {
+func (c *WeatherClient) GetWeather(lat, lng float64) (*dto.TodayWeather, error) {
 	params := url.Values{}
 	params.Set("latitude", fmt.Sprintf("%f", lat))
 	params.Set("longitude", fmt.Sprintf("%f", lng))
@@ -71,7 +55,7 @@ func (c *WeatherClient) GetWeather(lat, lng float64) (*TodayWeather, error) {
 		return nil, fmt.Errorf("天気データが空です")
 	}
 
-	return &TodayWeather{
+	return &dto.TodayWeather{
 		Date:       daily.Time[0],
 		TempMax:    daily.TempMax[0],
 		TempMin:    daily.TempMin[0],
@@ -104,7 +88,7 @@ func weatherCodeToStatus(code int) string {
 // internal/client/weather.go
 
 // 日付を引数に追加
-func (c *WeatherClient) GetWeatherByDate(lat, lng float64, date string) (*TodayWeather, error) {
+func (c *WeatherClient) GetWeatherByDate(lat, lng float64, date string) (*dto.TodayWeather, error) {
 	params := url.Values{}
 	params.Set("latitude", fmt.Sprintf("%f", lat))
 	params.Set("longitude", fmt.Sprintf("%f", lng))
@@ -140,7 +124,7 @@ func (c *WeatherClient) GetWeatherByDate(lat, lng float64, date string) (*TodayW
 		return nil, fmt.Errorf("天気データが空です")
 	}
 
-	return &TodayWeather{
+	return &dto.TodayWeather{
 		Date:       daily.Time[0],
 		TempMax:    daily.TempMax[0],
 		TempMin:    daily.TempMin[0],

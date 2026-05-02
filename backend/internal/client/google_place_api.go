@@ -6,27 +6,9 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+
+	"github.com/asamigentoku/DatePlan-app/internal/dto"
 )
-
-// レスポンスの構造体
-type PlacesResponse struct {
-	Results []Place `json:"results"`
-}
-
-type Place struct {
-	Name     string   `json:"name"`
-	Rating   float64  `json:"rating"`
-	Geometry Geometry `json:"geometry"`
-}
-
-type Geometry struct {
-	Location Location `json:"location"`
-}
-
-type Location struct {
-	Lat float64 `json:"lat"`
-	Lng float64 `json:"lng"`
-}
 
 // GooglePlacesClient 構造体
 type GooglePlacesClient struct {
@@ -41,7 +23,7 @@ func NewGooglePlacesClient(apiKey string) *GooglePlacesClient {
 }
 
 // SearchPlaces をメソッドに変更 (レシーバーを加える)
-func (c *GooglePlacesClient) SearchPlaces(query string) ([]Place, error) {
+func (c *GooglePlacesClient) SearchPlaces(query string) ([]dto.Place, error) {
 	// クエリパラメータの組み立て
 	params := url.Values{}
 	params.Set("query", query)
@@ -62,7 +44,7 @@ func (c *GooglePlacesClient) SearchPlaces(query string) ([]Place, error) {
 		return nil, fmt.Errorf("レスポンス読み取り失敗: %w", err)
 	}
 
-	var placesResp PlacesResponse
+	var placesResp dto.PlacesResponse
 	//jsonのデータを自分の構造体に変換する
 	if err := json.Unmarshal(body, &placesResp); err != nil {
 		return nil, fmt.Errorf("JSONパース失敗: %w", err)
