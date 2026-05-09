@@ -1,112 +1,200 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { Link } from 'expo-router';
+import { useCallback, useMemo, useState } from 'react';
+import {
+  Alert,
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 
-import { Collapsible } from '@/components/ui/collapsible';
-import { ExternalLink } from '@/components/external-link';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
-export default function TabTwoScreen() {
+type Item = { id: string; title: string; done: boolean };
+
+let seed = 0;
+function nextId() {
+  seed += 1;
+  return `${Date.now()}-${seed}`;
+}
+
+export default function ExploreScreen() {
+  const scheme = useColorScheme() ?? 'light';
+  const palette = Colors[scheme];
+  const [draft, setDraft] = useState('');
+  const [items, setItems] = useState<Item[]>([
+    { id: nextId(), title: '牛乳', done: false },
+    { id: nextId(), title: 'パン', done: true },
+  ]);
+
+  const add = useCallback(() => {
+    const title = draft.trim();
+    if (!title) return;
+    setItems((prev) => [...prev, { id: nextId(), title, done: false }]);
+    setDraft('');
+  }, [draft]);
+
+  const toggle = useCallback((id: string) => {
+    setItems((prev) =>
+      prev.map((it) => (it.id === id ? { ...it, done: !it.done } : it)),
+    );
+  }, []);
+
+  const remove = useCallback((id: string) => {
+    setItems((prev) => prev.filter((it) => it.id !== id));
+  }, []);
+
+  const sorted = useMemo(
+    () => [...items].sort((a, b) => Number(a.done) - Number(b.done)),
+    [items],
+  );
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText
-          type="title"
-          style={{
-            fontFamily: Fonts.rounded,
-          }}>
-          Explore
-        </ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image
-          source={require('@/assets/images/react-logo.png')}
-          style={{ width: 100, height: 100, alignSelf: 'center' }}
-        />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful{' '}
-          <ThemedText type="defaultSemiBold" style={{ fontFamily: Fonts.mono }}>
-            react-native-reanimated
-          </ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
+    <SafeAreaView style={[styles.safe, { backgroundColor: palette.background }]}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ThemedView style={styles.header}>
+          <ThemedText type="title">買い物メモ</ThemedText>
+          <ThemedText style={{ opacity: 0.7 }}>デモ用の別アプリ題材です。</ThemedText>
+        </ThemedView>
+
+        <FlatList
+          data={sorted}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.list}
+          ListHeaderComponent={
+            <View style={[styles.routesCard, { borderColor: palette.icon }]}>
+              <ThemedText style={{ opacity: 0.85 }}>
+                ルート構成のサンプルは「マイページ」タブから開けます。
+              </ThemedText>
+              <Link href="/profile" style={styles.routeLink}>
+                <ThemedText type="link">マイページへ</ThemedText>
+              </Link>
+            </View>
+          }
+          renderItem={({ item }) => (
+            <Pressable
+              onPress={() => toggle(item.id)}
+              onLongPress={() =>
+                Alert.alert('削除しますか？', item.title, [
+                  { text: 'キャンセル', style: 'cancel' },
+                  { text: '削除', style: 'destructive', onPress: () => remove(item.id) },
+                ])
+              }
+              style={({ pressed }) => [
+                styles.row,
+                {
+                  borderColor: palette.icon,
+                  opacity: pressed ? 0.85 : 1,
+                  backgroundColor: scheme === 'dark' ? '#1c1c1e' : '#f2f2f7',
+                },
+              ]}>
+              <View style={[styles.dot, item.done && { backgroundColor: palette.tint }]} />
+              <ThemedText
+                style={[styles.rowText, item.done && styles.rowDone]}
+                numberOfLines={2}>
+                {item.title}
+              </ThemedText>
+            </Pressable>
+          )}
+          ListEmptyComponent={
+            <ThemedText style={{ paddingVertical: 24, textAlign: 'center', opacity: 0.6 }}>
+              まだありません。下から追加してください。
             </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+          }
+        />
+
+        <View style={[styles.footer, { borderTopColor: palette.icon }]}>
+          <TextInput
+            value={draft}
+            onChangeText={setDraft}
+            placeholder="項目を入力"
+            placeholderTextColor={palette.icon}
+            onSubmitEditing={add}
+            returnKeyType="done"
+            style={[
+              styles.input,
+              {
+                color: palette.text,
+                borderColor: palette.icon,
+                backgroundColor: scheme === 'dark' ? '#1c1c1e' : '#fff',
+              },
+            ]}
+          />
+          <Pressable
+            onPress={add}
+            style={({ pressed }) => [
+              styles.addBtn,
+              { backgroundColor: palette.tint, opacity: pressed ? 0.88 : 1 },
+            ]}>
+            <Text style={styles.addBtnLabel}>追加</Text>
+          </Pressable>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
+  safe: { flex: 1 },
+  flex: { flex: 1 },
+  header: { paddingHorizontal: 20, paddingBottom: 12, gap: 4 },
+  routesCard: {
+    marginHorizontal: 16,
+    marginBottom: 14,
+    padding: 14,
+    gap: 10,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
   },
-  titleContainer: {
+  routeLink: { alignSelf: 'flex-start' },
+  list: { paddingHorizontal: 16, paddingBottom: 16, gap: 8 },
+  row: {
     flexDirection: 'row',
-    gap: 8,
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
   },
+  dot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#ccc',
+  },
+  rowText: { flex: 1, fontSize: 17 },
+  rowDone: { textDecorationLine: 'line-through', opacity: 0.55 },
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  input: {
+    flex: 1,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: Platform.OS === 'ios' ? 12 : 10,
+    fontSize: 16,
+  },
+  addBtn: {
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 10,
+  },
+  addBtnLabel: { color: '#fff', fontWeight: '600', fontSize: 16 },
 });

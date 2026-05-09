@@ -22,7 +22,7 @@ func main() {
 	}
 	defer logger.Log.Sync()
 
-	//データベース初期化
+	//postgresの初期化
 	db, err := database.Connect(cfg)
 	if err != nil {
 		log.Fatal("Failed to connect database:", err)
