@@ -82,7 +82,8 @@ func (s *planService) attachPhotos(ctx context.Context, plan *dto.PlanResponse) 
 }
 
 // attachCoordinates はプラン内の各スポットにスポット名で取得した座標を付与する（Mongoキャッシュ利用）
-func (s *planService) attachCoordinates(ctx context.Context, plan *dto.PlanResponse) {
+// fallback は座標取得に失敗した場合に使うモック座標（同じ県内になるよう、最初に取得した県の座標を渡す）
+func (s *planService) attachCoordinates(ctx context.Context, plan *dto.PlanResponse, fallback *client.LatLon) {
 	for i := range plan.Spots {
 		name := plan.Spots[i].Name
 
@@ -95,8 +96,15 @@ func (s *planService) attachCoordinates(ctx context.Context, plan *dto.PlanRespo
 
 		latlon, err := s.nominatimclient.GetLatLon(name)
 		if err != nil {
-			fmt.Println("⚠️ スポット座標取得失敗:", name, err)
-			continue
+			fmt.Println("⚠️ スポット座標取得失敗(Nominatim):", name, err)
+			latlon, err = s.googleClient.GetLatLon(name)
+			if err != nil {
+				fmt.Println("⚠️ スポット座標取得失敗(Google)、県の座標をモックとして使用:", name, err)
+				plan.Spots[i].Lat = fallback.Lat
+				plan.Spots[i].Lng = fallback.Lon
+				continue
+			}
+			fmt.Println("✅ Google Geocodingで座標取得:", name)
 		}
 		plan.Spots[i].Lat = latlon.Lat
 		plan.Spots[i].Lng = latlon.Lon
@@ -152,6 +160,10 @@ func (s *planService) MakePlan(req *dto.CreatePlanRequest) (*dto.PlanResponse, e
 		latlon = &client.LatLon{Lat: cached.Lat, Lon: cached.Lon}
 	} else {
 		latlon, err = s.nominatimclient.GetLatLon(req.Prefecture)
+		if err != nil {
+			fmt.Println("⚠️ 座標取得失敗(Nominatim)、Googleで再試行:", err)
+			latlon, err = s.googleClient.GetLatLon(req.Prefecture)
+		}
 		if err != nil {
 			fmt.Println("⚠️ 座標取得失敗、モックを使用:", err)
 			latlon = &client.LatLon{Lat: 35.681236, Lon: 139.767125} // 東京駅
@@ -231,7 +243,7 @@ func (s *planService) MakePlan(req *dto.CreatePlanRequest) (*dto.PlanResponse, e
 
 	// 各スポットに写真・座標を付与する
 	s.attachPhotos(ctx, plan)
-	s.attachCoordinates(ctx, plan)
+	s.attachCoordinates(ctx, plan, latlon)
 
 	return plan, nil
 }
