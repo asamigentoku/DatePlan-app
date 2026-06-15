@@ -12,6 +12,7 @@ import type {
 import type { Plan } from '@/lib/date-plan-types';
 import { getCurrentPlan } from '@/lib/plan-store';
 import { savePlan } from '@/lib/saved-plans';
+import { PlanRouteMap, type RouteSpot } from '@/components/PlanRouteMap';
 
 // ─── Design tokens ─────────────────────────────────────────────────────────
 const C = {
@@ -176,6 +177,16 @@ export default function PlanResultScreen() {
     moves.reduce((acc, m) => acc + (m.duration ?? 0), 0);
   const totalHours = (totalMins / 60).toFixed(1);
 
+  const routeSpots: RouteSpot[] = spots
+    .filter((s): s is DtoSpotInfo & { lat: number; lng: number } => s.lat != null && s.lng != null)
+    .map(s => ({
+      name: s.name ?? '',
+      lat: s.lat,
+      lng: s.lng,
+      color: catOf(s.category).color,
+      emoji: catOf(s.category).emoji,
+    }));
+
   const handleSave = async () => {
     try {
       await savePlan(toPlan(api, meta));
@@ -227,6 +238,9 @@ export default function PlanResultScreen() {
             </View>
           ))}
         </View>
+
+        {/* ── Route Map ── */}
+        {routeSpots.length > 0 ? <PlanRouteMap spots={routeSpots} /> : null}
 
         {/* ── Timeline ── */}
         <View style={styles.timeline}>
