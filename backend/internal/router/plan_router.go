@@ -15,11 +15,16 @@ func setupPlanRouters(rg *gin.RouterGroup, cfg *config.Config, db *gorm.DB, mong
 	googleClient := client.NewGooglePlacesClient(cfg.GoogleMapAPIKey)
 
 	groqClient := client.NewGroqClient(cfg.GROQAPIKEY)
+	chatgptClient := client.NewOpenAIClient(cfg.OPENAIAPIKEY)
 	weatherClient := client.NewWeatherClient()
 	nominatimClient := client.NewNominatimClient()
+	pixabayClient := client.NewPixabayClient(cfg.PixabayAPIKey)
 	placeCacheRepo := repository.NewPlacesCacheRepository(mongodb)
+	imgCacheRepo := repository.NewImgCacheRepository(mongodb)
+	geoCacheRepo := repository.NewGeoCacheRepository(mongodb)
+	weatherCacheRepo := repository.NewWeatherCacheRepository(mongodb)
 
-	planSvc := service.NewPlanService(googleClient, groqClient, weatherClient, nominatimClient, placeCacheRepo)
+	planSvc := service.NewPlanService(googleClient, groqClient, chatgptClient, weatherClient, nominatimClient, pixabayClient, placeCacheRepo, imgCacheRepo, geoCacheRepo, weatherCacheRepo)
 	planH := handler.NewPlanHandler(planSvc)
 
 	plans := rg.Group("/plans")

@@ -1,0 +1,373 @@
+basePath: /api/v1
+definitions:
+  dto.CreatePlanRequest:
+    properties:
+      budget:
+        description: 予算 (default=Noneを表現するためポインタを使用)
+        type: integer
+      date:
+        description: いついくか
+        type: string
+      desired_places:
+        description: 行きたい場所
+        items:
+          type: string
+        type: array
+      end_time:
+        description: 終わりの時間 (default=Noneを表現するためポインタを使用)
+        type: integer
+      has_car:
+        description: 車あり
+        type: boolean
+      locations:
+        description: 場所(リスト),地名
+        items:
+          type: string
+        type: array
+      prefecture:
+        description: 都道府県 (選ばせる項目)
+        type: string
+      relationship:
+        description: 関係性
+        type: string
+      start_time:
+        description: 始まりの時間
+        type: integer
+      theme:
+        description: テーマ
+        type: string
+      time_slot:
+        description: 時間帯 (朝、昼、夜)
+        type: string
+    required:
+    - prefecture
+    type: object
+  dto.CreateUserRequest:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - name
+    - password
+    type: object
+  dto.MovementInfo:
+    properties:
+      duration:
+        description: 時間(分)
+        type: integer
+      from:
+        type: string
+      method:
+        description: 徒歩 / 電車 / 車
+        type: string
+      order:
+        description: いつ表示するか
+        type: integer
+      to:
+        type: string
+    type: object
+  dto.OpeningHours:
+    properties:
+      end:
+        type: integer
+      start:
+        type: integer
+    type: object
+  dto.PlanResponse:
+    properties:
+      description:
+        type: string
+      movements:
+        items:
+          $ref: '#/definitions/dto.MovementInfo'
+        type: array
+      spots:
+        items:
+          $ref: '#/definitions/dto.SpotInfo'
+        type: array
+      theme:
+        type: string
+      weather:
+        $ref: '#/definitions/dto.WeatherInfo'
+    type: object
+  dto.SpotInfo:
+    properties:
+      category:
+        description: カフェ / 公園 / 映画館
+        type: string
+      congestion:
+        description: 混雑度
+        type: integer
+      description:
+        type: string
+      indoor_outdoor:
+        description: 屋内 / 屋外
+        type: string
+      lat:
+        description: 緯度
+        type: number
+      lng:
+        description: 経度
+        type: number
+      name:
+        type: string
+      opening_hours:
+        $ref: '#/definitions/dto.OpeningHours'
+      order:
+        description: いつ表示するか
+        type: integer
+      photos:
+        description: list[url]
+        items:
+          type: string
+        type: array
+      price_range:
+        description: 価格帯
+        type: integer
+      rating:
+        type: number
+      stay_time:
+        description: 滞在時間目安(分)
+        type: integer
+    type: object
+  dto.UserResponse:
+    properties:
+      email:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  dto.WeatherInfo:
+    properties:
+      season:
+        description: 季節
+        type: string
+      status:
+        description: 晴れ / 雨 / 曇り
+        type: string
+      temperature:
+        description: 気温
+        type: number
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: デートプランを生成・管理するAPI
+  title: DatePlan API
+  version: "1.0"
+paths:
+  /health:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: ヘルスチェック
+      tags:
+      - health
+  /plans:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: プラン生成リクエスト
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreatePlanRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PlanResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: デートプランを生成する
+      tags:
+      - plans
+  /users:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.UserResponse'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: ユーザー一覧取得
+      tags:
+      - users
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: ユーザー情報
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.UserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: ユーザー作成
+      tags:
+      - users
+  /users/{id}:
+    delete:
+      parameters:
+      - description: ユーザーID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: ユーザー削除
+      tags:
+      - users
+    get:
+      parameters:
+      - description: ユーザーID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.UserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: ユーザー取得
+      tags:
+      - users
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: ユーザーID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: ユーザー情報
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.UserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: ユーザー更新
+      tags:
+      - users
+swagger: "2.0"

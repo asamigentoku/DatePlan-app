@@ -26,15 +26,14 @@ export async function getSavedPlans(): Promise<SavedPlanRecord[]> {
   return [...list].sort((a, b) => (a.savedAt < b.savedAt ? 1 : -1));
 }
 
-export async function savePlan(plan: Plan): Promise<SavedPlanRecord> {
+export async function savePlan(plan: Plan): Promise<void> {
   const list = await readRaw();
   const record: SavedPlanRecord = {
-    id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+    id: `${Date.now()}`,
     savedAt: new Date().toISOString(),
     plan,
   };
   await AsyncStorage.setItem(KEY, JSON.stringify([record, ...list]));
-  return record;
 }
 
 export async function deleteSavedPlan(id: string): Promise<void> {

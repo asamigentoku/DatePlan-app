@@ -1,3 +1,8 @@
+// @title           DatePlan API
+// @version         1.0
+// @description     デートプランを生成・管理するAPI
+// @host            localhost:8080
+// @BasePath        /api/v1
 package main
 
 import (

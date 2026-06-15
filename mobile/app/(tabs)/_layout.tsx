@@ -3,50 +3,55 @@ import React from 'react';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        tabBarActiveTintColor: '#7C5CFC',
+        tabBarInactiveTintColor: '#9B91C8',
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarHideOnKeyboard: true,
+        tabBarStyle: {
+          backgroundColor: '#FFFFFF',
+          borderTopColor: '#EDE9FF',
+          borderTopWidth: 1,
+          height: 88,
+          paddingBottom: 28,
+          paddingTop: 8,
+        },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '600',
+          letterSpacing: 0.2,
+        },
       }}>
       <Tabs.Screen
         name="index"
         options={{
-          title: 'プラン',
+          title: 'ホーム',
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={26} name="heart.fill" color={color} />
+            <IconSymbol size={24} name="heart.fill" color={color} />
           ),
         }}
       />
       <Tabs.Screen
         name="saved"
         options={{
-          title: '保存',
+          title: 'プラン',
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={26} name="bookmark.fill" color={color} />
+            <IconSymbol size={24} name="bookmark.fill" color={color} />
           ),
         }}
       />
       <Tabs.Screen
         name="discover"
         options={{
-          title: '発見',
-          tabBarIcon: ({ color }) => <IconSymbol size={26} name="map.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'ツール',
-          tabBarIcon: ({ color }) => <IconSymbol size={26} name="cart.fill" color={color} />,
+          title: 'ヒント',
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={24} name="map.fill" color={color} />
+          ),
         }}
       />
       <Tabs.Screen
@@ -54,10 +59,11 @@ export default function TabLayout() {
         options={{
           title: 'マイページ',
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={26} name="person.fill" color={color} />
+            <IconSymbol size={24} name="person.fill" color={color} />
           ),
         }}
       />
+      <Tabs.Screen name="explore" options={{ href: null }} />
     </Tabs>
   );
 }

@@ -48,16 +48,15 @@ func (c *GroqClient) Chat(prompt string) (string, error) {
 
 // デートプラン生成（PlanResponse で返す）
 func (c *GroqClient) GenerateDatePlan(prompt string) (*dto.PlanResponse, error) {
-
-	return generate[dto.PlanResponse](c, prompts.SystemPrompt, prompt)
+	return generateChatJSON[dto.PlanResponse](c.client, c.model, prompts.SystemPrompt, prompt)
 }
 
-// 内部共通処理
-func generate[T any](c *GroqClient, systemPrompt, userPrompt string) (*T, error) {
+// 内部共通処理（GroqClient/OpenAIClient など openai.Client ベースのクライアントで共有）
+func generateChatJSON[T any](apiClient openai.Client, model, systemPrompt, userPrompt string) (*T, error) {
 	ctx := context.Background()
 
-	result, err := c.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
-		Model: c.model,
+	result, err := apiClient.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
+		Model: model,
 		Messages: []openai.ChatCompletionMessageParamUnion{
 			openai.SystemMessage(systemPrompt),
 			openai.UserMessage(userPrompt),

@@ -15,6 +15,16 @@ func NewPlanHandler(svc service.PlanService) *PlanHandler {
 	return &PlanHandler{svc: svc}
 }
 
+// MakePlans godoc
+// @Summary      デートプランを生成する
+// @Tags         plans
+// @Accept       json
+// @Produce      json
+// @Param        request body dto.CreatePlanRequest true "プラン生成リクエスト"
+// @Success      200  {object}  dto.PlanResponse
+// @Failure      400  {object}  map[string]string
+// @Failure      500  {object}  map[string]string
+// @Router       /plans [post]
 func (h *PlanHandler) MakePlans(c *gin.Context) {
 	// 1. リクエストボディを格納するDTOを準備
 	var req dto.CreatePlanRequest

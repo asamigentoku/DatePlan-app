@@ -1,12 +1,12 @@
 import { Link } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Alert,
   FlatList,
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  SafeAreaView,
   StyleSheet,
   Text,
   TextInput,

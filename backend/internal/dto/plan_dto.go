@@ -43,6 +43,8 @@ type SpotInfo struct {
 	Rating        float64      `json:"rating"`
 	Congestion    int          `json:"congestion"` // 混雑度
 	OpeningHours  OpeningHours `json:"opening_hours"`
+	Lat           float64      `json:"lat"` // 緯度
+	Lng           float64      `json:"lng"` // 経度
 }
 
 // OpeningHours 営業時間

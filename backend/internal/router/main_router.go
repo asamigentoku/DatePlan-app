@@ -1,6 +1,7 @@
 package router
 
 import (
+	"github.com/asamigentoku/DatePlan-app/docs"
 	"github.com/asamigentoku/DatePlan-app/internal/handler"
 	"github.com/asamigentoku/DatePlan-app/internal/middleware"
 	"github.com/asamigentoku/DatePlan-app/internal/repository"
@@ -8,6 +9,8 @@ import (
 	"github.com/asamigentoku/DatePlan-app/pkg/config"
 	"github.com/asamigentoku/DatePlan-app/pkg/database"
 	"github.com/gin-gonic/gin"
+	swaggerfiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"gorm.io/gorm"
 )
 
@@ -29,6 +32,7 @@ func New(cfg *config.Config, db *gorm.DB, mongodb *database.MongoClient) *gin.En
 	r.GET("/health", handler.Health)
 
 	// DI: repository → service → handler
+	//これは外でやる本来
 	userRepo := repository.NewUserRepository(db)
 	userSvc := service.NewUserService(userRepo)
 	userH := handler.NewUserHandler(userSvc)
@@ -47,6 +51,9 @@ func New(cfg *config.Config, db *gorm.DB, mongodb *database.MongoClient) *gin.En
 			users.DELETE("/:id", userH.Delete)
 		}
 	}
+
+	docs.SwaggerInfo.BasePath = "/api/v1"
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 
 	return r
 }
