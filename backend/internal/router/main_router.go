@@ -19,14 +19,9 @@ func New(cfg *config.Config, db *gorm.DB, mongodb *database.MongoClient) *gin.En
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	//エンジンの作成
 	r := gin.New()
-	//サーバーをリカバリーモードにする
-	r.Use(gin.Recovery())
-	//middlewaraは全てのリクエストの共通の設定
-	//アクセスのログの表示
 	r.Use(middleware.Logger())
-	//アクセスの権限設定
+	r.Use(gin.Recovery())
 	r.Use(middleware.CORS())
 
 	r.GET("/health", handler.Health)
