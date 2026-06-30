@@ -34,8 +34,7 @@ export default function RootLayout() {
             {/*Stack の一番最初の画面としてスタックされる、(tabs)はURLをただ隠すためのグループ*/}
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-          <Stack.Screen name="settings" options={{ headerShown: false }} />
-          <Stack.Screen name="notes" options={{ title: 'メモ' }} />
+<Stack.Screen name="notes" options={{ title: 'メモ' }} />
           <Stack.Screen name="item/[id]" options={{ title: '詳細' }} />
           <Stack.Screen name="plan-result" options={{ title: 'デートプラン' }} />
         </Stack>

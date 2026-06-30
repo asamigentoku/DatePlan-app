@@ -58,7 +58,6 @@ function PlanCard({ item, index, onPress }: { item: SavedPlanRecord; index: numb
         <Image source={firstPhoto} style={styles.cardThumb} contentFit="cover" transition={200} />
       ) : (
         <LinearGradient colors={grad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.cardThumb, styles.cardThumbGrad]}>
-          <Text style={{ fontSize: 36 }}>💑</Text>
           <Text style={styles.cardThumbTitle} numberOfLines={1}>{title}</Text>
         </LinearGradient>
       )}

@@ -48,22 +48,14 @@ export default function TabLayout() {
       <Tabs.Screen
         name="discover"
         options={{
-          title: 'ヒント',
+          title: 'トーク',
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={24} name="map.fill" color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'マイページ',
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={24} name="person.fill" color={color} />
+            <IconSymbol size={24} name="bubble.left.and.bubble.right.fill" color={color} />
           ),
         }}
       />
       <Tabs.Screen name="explore" options={{ href: null }} />
+      <Tabs.Screen name="profile" options={{ href: null }} />
     </Tabs>
   );
 }

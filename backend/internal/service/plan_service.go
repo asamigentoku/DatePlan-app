@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/rand/v2"
 	"net/http"
+	"sync"
 
 	"github.com/asamigentoku/DatePlan-app/internal/client"
 	"github.com/asamigentoku/DatePlan-app/internal/dto"
@@ -59,60 +60,79 @@ func NewPlanService(
 
 // attachPhotos はプラン内の各スポットにスポット名で検索した写真を付与する（Mongoキャッシュ利用）
 func (s *planService) attachPhotos(ctx context.Context, plan *dto.PlanResponse) {
+	var wg sync.WaitGroup
+	sem := make(chan struct{}, 5)
 	for i := range plan.Spots {
-		name := plan.Spots[i].Name
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+			name := plan.Spots[i].Name
 
-		if cached, err := s.imgCache.GetCache(ctx, name); err == nil && cached != nil {
-			fmt.Println("⚡ 画像キャッシュから取得:", name)
-			plan.Spots[i].Photos = pixabayHitsToURLs(*cached)
-			continue
-		}
+			if cached, err := s.imgCache.GetCache(ctx, name); err == nil && cached != nil {
+				fmt.Println("⚡ 画像キャッシュから取得:", name)
+				plan.Spots[i].Photos = pixabayHitsToURLs(*cached)
+				return
+			}
 
-		hits, err := s.pixabayclient.SearchPhotos(name)
-		if err != nil {
-			fmt.Println("⚠️ 写真取得失敗:", err)
-			continue
-		}
-		plan.Spots[i].Photos = hits
+			hits, err := s.pixabayclient.SearchPhotos(name)
+			if err != nil {
+				fmt.Println("⚠️ 写真取得失敗:", err)
+				return
+			}
+			plan.Spots[i].Photos = hits
 
-		if cacheErr := s.imgCache.SetCache(ctx, name, urlsToPixabayHits(hits)); cacheErr != nil {
-			fmt.Println("⚠️ 画像キャッシュ保存失敗:", cacheErr)
-		}
+			if cacheErr := s.imgCache.SetCache(ctx, name, urlsToPixabayHits(hits)); cacheErr != nil {
+				fmt.Println("⚠️ 画像キャッシュ保存失敗:", cacheErr)
+			}
+		}(i)
 	}
+	wg.Wait()
 }
 
 // attachCoordinates はプラン内の各スポットにスポット名で取得した座標を付与する（Mongoキャッシュ利用）
 // fallback は座標取得に失敗した場合に使うモック座標（同じ県内になるよう、最初に取得した県の座標を渡す）
 func (s *planService) attachCoordinates(ctx context.Context, plan *dto.PlanResponse, fallback *client.LatLon) {
+	var wg sync.WaitGroup
+	sem := make(chan struct{}, 3)
 	for i := range plan.Spots {
-		name := plan.Spots[i].Name
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
 
-		if cached, err := s.geoCache.GetCache(ctx, name); err == nil && cached != nil {
-			fmt.Println("⚡ 座標キャッシュから取得:", name)
-			plan.Spots[i].Lat = cached.Lat
-			plan.Spots[i].Lng = cached.Lon
-			continue
-		}
+			name := plan.Spots[i].Name
 
-		latlon, err := s.nominatimclient.GetLatLon(name)
-		if err != nil {
-			fmt.Println("⚠️ スポット座標取得失敗(Nominatim):", name, err)
-			latlon, err = s.googleClient.GetLatLon(name)
-			if err != nil {
-				fmt.Println("⚠️ スポット座標取得失敗(Google)、県の座標をモックとして使用:", name, err)
-				plan.Spots[i].Lat = fallback.Lat
-				plan.Spots[i].Lng = fallback.Lon
-				continue
+			if cached, err := s.geoCache.GetCache(ctx, name); err == nil && cached != nil {
+				fmt.Println("⚡ 座標キャッシュから取得:", name)
+				plan.Spots[i].Lat = cached.Lat
+				plan.Spots[i].Lng = cached.Lon
+				return
 			}
-			fmt.Println("✅ Google Geocodingで座標取得:", name)
-		}
-		plan.Spots[i].Lat = latlon.Lat
-		plan.Spots[i].Lng = latlon.Lon
 
-		if cacheErr := s.geoCache.SetCache(ctx, name, repository.GeoLocation{Lat: latlon.Lat, Lon: latlon.Lon}); cacheErr != nil {
-			fmt.Println("⚠️ 座標キャッシュ保存失敗:", cacheErr)
-		}
+			latlon, err := s.nominatimclient.GetLatLon(name)
+			if err != nil {
+				fmt.Println("⚠️ スポット座標取得失敗(Nominatim):", name, err)
+				latlon, err = s.googleClient.GetLatLon(name)
+				if err != nil {
+					fmt.Println("⚠️ スポット座標取得失敗(Google)、県の座標をモックとして使用:", name, err)
+					plan.Spots[i].Lat = fallback.Lat
+					plan.Spots[i].Lng = fallback.Lon
+					return
+				}
+				fmt.Println("✅ Google Geocodingで座標取得:", name)
+			}
+			plan.Spots[i].Lat = latlon.Lat
+			plan.Spots[i].Lng = latlon.Lon
+
+			if cacheErr := s.geoCache.SetCache(ctx, name, repository.GeoLocation{Lat: latlon.Lat, Lon: latlon.Lon}); cacheErr != nil {
+				fmt.Println("⚠️ 座標キャッシュ保存失敗:", cacheErr)
+			}
+		}(i)
 	}
+	wg.Wait()
 }
 
 func pixabayHitsToURLs(hits []dto.PixabayHit) []string {
@@ -242,8 +262,17 @@ func (s *planService) MakePlan(req *dto.CreatePlanRequest) (*dto.PlanResponse, e
 	}
 
 	// 各スポットに写真・座標を付与する
-	s.attachPhotos(ctx, plan)
-	s.attachCoordinates(ctx, plan, latlon)
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		s.attachPhotos(ctx, plan)
+	}()
+	go func() {
+		defer wg.Done()
+		s.attachCoordinates(ctx, plan, latlon)
+	}()
+	wg.Wait()
 
 	return plan, nil
 }

@@ -1,8 +1,8 @@
 import { LinearGradient } from 'expo-linear-gradient';
+import { useState, useCallback } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-// ─── Design tokens ─────────────────────────────────────────────────────────
 const C = {
   bg:     '#F7F5FF',
   card:   '#FFFFFF',
@@ -14,113 +14,136 @@ const C = {
   line:   '#EDE9FF',
 };
 
-const SEASONS = [
+type Category = {
+  label: string;
+  color: string;
+  bg: string;
+  pool: string[];
+};
+
+const CATEGORIES: Category[] = [
   {
-    icon: '🌸', label: '春のデート',
-    gradient: ['#F5F0FF', '#EAE1FF'] as const,
-    accent: '#7C5CFC',
-    items: [
-      { title: '桜ピクニック', body: '花見スポットへ早めに場所取り。お弁当を一緒に作るとより特別な時間に。' },
-      { title: 'ガーデン散策', body: '植物園や日本庭園は春が見頃。歩きやすいシューズで半日ゆっくり散策を。' },
+    label: '好きなもの',
+    color: '#7C5CFC',
+    bg: '#EEE9FF',
+    pool: [
+      '最近ハマってる食べ物は？',
+      '子どもの頃に好きだったアニメは？',
+      '何時間でも話せる趣味って何？',
+      '最近買って一番よかったものは？',
+      '好きな匂いってある？',
+      '人生で一番おいしかった食べ物は？',
     ],
   },
   {
-    icon: '🌿', label: '夏のデート',
-    gradient: ['#ECFDF5', '#D1FAE5'] as const,
-    accent: '#059669',
-    items: [
-      { title: '花火大会', body: '人気スポットは早めに場所を確保。浴衣デートで特別な夜を演出しましょう。' },
-      { title: 'プール・ビーチ', body: '日焼け止めと着替えをしっかり準備。水上アクティビティも盛り上がります。' },
+    label: '将来・夢',
+    color: '#0284C7',
+    bg: '#E0F2FE',
+    pool: [
+      '5年後どんな生活してると思う？',
+      '住んでみたい街や国はある？',
+      '絶対やってみたいことって何？',
+      '仕事で叶えたい夢はある？',
+      '老後はどんなふうに過ごしたい？',
+      'もし宝くじが当たったら何する？',
     ],
   },
   {
-    icon: '🍂', label: '秋のデート',
-    gradient: ['#FFF7ED', '#FEE9CF'] as const,
-    accent: '#EA580C',
-    items: [
-      { title: '紅葉狩り', body: '見頃は例年10〜11月。山や公園の紅葉スポットを事前にリサーチしておこう。' },
-      { title: 'ハロウィン', body: '仮装デートや期間限定メニューを楽しめるカフェ・テーマパークがおすすめ。' },
+    label: '思い出・エピソード',
+    color: '#059669',
+    bg: '#ECFDF5',
+    pool: [
+      '人生で一番笑った出来事は？',
+      '子どもの頃の夢って何だった？',
+      '今でも覚えてる失敗エピソードは？',
+      '人生で一番テンションが上がった瞬間は？',
+      '旅行で一番印象に残ってる場所は？',
+      '友達との一番おもしろいエピソードは？',
     ],
   },
   {
-    icon: '❄️', label: '冬のデート',
-    gradient: ['#EFF6FF', '#DBEAFE'] as const,
-    accent: '#0284C7',
-    items: [
-      { title: 'イルミネーション', body: '12月はイルミネーションが各地で開催。混雑を避けるなら平日夕方がねらい目。' },
-      { title: '温泉・銭湯', body: '近場の温泉でゆっくりリフレッシュ。個室休憩室付きプランもおすすめ。' },
+    label: 'もしも・妄想',
+    color: '#EA580C',
+    bg: '#FFF7ED',
+    pool: [
+      '何にでもなれるなら何になりたい？',
+      'タイムマシンで行くなら過去？未来？',
+      '透明人間になったら何する？',
+      '無人島に一つだけ持っていくなら何？',
+      '超能力が使えるとしたら何を選ぶ？',
+      '1億円あったら何に使う？',
+    ],
+  },
+  {
+    label: 'お互いのこと',
+    color: '#7C5CFC',
+    bg: '#F5F0FF',
+    pool: [
+      '第一印象ってどうだった？',
+      'お互いの好きなところを3つ言うとしたら？',
+      '一緒にやってみたいことある？',
+      'これだけは譲れないってこだわりは？',
+      '相手のどんな行動がうれしかった？',
+      '一緒に行ってみたい場所はある？',
     ],
   },
 ];
 
-const TIPS = [
-  {
-    icon: '⏰', title: '時間配分のコツ',
-    dotColor: C.purple,
-    items: [
-      { label: '1スポット60〜90分', body: '欲張りすぎず、余裕を持った時間を確保しましょう。' },
-      { label: '移動時間も楽しむ', body: '電車や徒歩での移動中の会話もデートの一部。急ぎすぎないのがポイント。' },
-      { label: '締め時間を決める', body: '終電・終バスを事前に確認。夜は1時間前には余裕を持って動き出しましょう。' },
-    ],
-  },
-  {
-    icon: '📅', title: '予約のポイント',
-    dotColor: '#0284C7',
-    items: [
-      { label: '人気店は1〜2週間前', body: 'ランチより夜の方が予約が取りにくい傾向。早めのアクション必須です。' },
-      { label: 'アレルギー確認', body: '相手のアレルギーや苦手な食べ物を事前に確認しておくと安心。' },
-      { label: '記念日特典を活用', body: '誕生日・記念日には特典を用意しているレストランも多いので活用を。' },
-    ],
-  },
-  {
-    icon: '🎒', title: '持ち物チェックリスト',
-    dotColor: '#059669',
-    items: [
-      { label: 'モバイルバッテリー', body: 'スマホが切れるとトラブルの元。大容量のものを持ち歩く習慣をつけましょう。' },
-      { label: 'ハンカチ・ティッシュ', body: '急な雨や食事の際に役立ちます。小さな気遣いが好印象に。' },
-      { label: '現金少額', body: 'キャッシュレス未対応の店のために1,000〜3,000円は確保しましょう。' },
-    ],
-  },
-];
+const PICK_COUNT = 2;
 
-export default function DiscoverScreen() {
+function pickRandom<T>(arr: T[], n: number): T[] {
+  const shuffled = [...arr].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, n);
+}
+
+type GeneratedItem = { category: Category; themes: string[] };
+
+export default function TalkScreen() {
+  const [generated, setGenerated] = useState<GeneratedItem[]>([]);
+  const [generated_once, setGeneratedOnce] = useState(false);
+
+  const generate = useCallback(() => {
+    setGenerated(
+      CATEGORIES.map(cat => ({ category: cat, themes: pickRandom(cat.pool, PICK_COUNT) }))
+    );
+    setGeneratedOnce(true);
+  }, []);
+
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 
-        {/* ── Season cards ── */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.seasonScroll}>
-          {SEASONS.map(s => (
-            <LinearGradient key={s.label} colors={s.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.seasonCard}>
-              <Text style={styles.seasonIcon}>{s.icon}</Text>
-              <Text style={[styles.seasonLabel, { color: s.accent }]}>{s.label}</Text>
-              {s.items.map(item => (
-                <View key={item.title} style={styles.seasonItem}>
-                  <View style={[styles.seasonDot, { backgroundColor: s.accent }]} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.seasonItemTitle, { color: s.accent }]}>{item.title}</Text>
-                    <Text style={styles.seasonItemBody}>{item.body}</Text>
-                  </View>
-                </View>
-              ))}
-            </LinearGradient>
-          ))}
-        </ScrollView>
+        {/* ── Header ── */}
+        <View style={styles.header}>
+          <Text style={styles.title}>トークテーマ</Text>
+          <Text style={styles.subtitle}>デート中の話題が思い浮かばないときに</Text>
+        </View>
 
-        {/* ── Tips ── */}
-        {TIPS.map(section => (
-          <View key={section.title} style={styles.tipSection}>
-            <Text style={styles.tipSectionLabel}>{section.icon}  {section.title}</Text>
-            <View style={styles.tipCard}>
-              {section.items.map((item, i) => (
-                <View key={item.label}>
-                  {i > 0 ? <View style={styles.tipDivider} /> : null}
-                  <View style={styles.tipRow}>
-                    <View style={[styles.tipDot, { backgroundColor: section.dotColor }]} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.tipLabel, { color: section.dotColor }]}>{item.label}</Text>
-                      <Text style={styles.tipBody}>{item.body}</Text>
-                    </View>
+        {/* ── Generate button ── */}
+        <Pressable style={({ pressed }) => [pressed && { opacity: 0.82 }]} onPress={generate}>
+          <LinearGradient
+            colors={['#7C5CFC', '#5B3FE0']}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+            style={styles.genBtn}>
+            <Text style={styles.genBtnText}>
+              {generated_once ? '再生成する' : 'テーマを生成する'}
+            </Text>
+          </LinearGradient>
+        </Pressable>
+
+        {/* ── Results ── */}
+        {generated.map(({ category, themes }) => (
+          <View key={category.label} style={styles.section}>
+            <View style={[styles.categoryBadge, { backgroundColor: category.bg }]}>
+              <Text style={[styles.categoryLabel, { color: category.color }]}>{category.label}</Text>
+            </View>
+            <View style={styles.card}>
+              {themes.map((theme, i) => (
+                <View key={theme}>
+                  {i > 0 && <View style={styles.divider} />}
+                  <View style={styles.themeRow}>
+                    <View style={[styles.dot, { backgroundColor: category.color }]} />
+                    <Text style={styles.themeText}>{theme}</Text>
                   </View>
                 </View>
               ))}
@@ -128,7 +151,14 @@ export default function DiscoverScreen() {
           </View>
         ))}
 
-        <View style={{ height: 32 }} />
+        {/* ── Empty state ── */}
+        {!generated_once && (
+          <View style={styles.empty}>
+            <Text style={styles.emptyText}>ボタンを押してテーマを生成してみよう</Text>
+          </View>
+        )}
+
+        <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -136,35 +166,39 @@ export default function DiscoverScreen() {
 
 const styles = StyleSheet.create({
   safe:    { flex: 1, backgroundColor: C.bg },
-  content: { paddingBottom: 8, paddingTop: 20 },
+  content: { paddingBottom: 8 },
 
-  seasonScroll: { paddingHorizontal: 20, gap: 12, paddingBottom: 8 },
-  seasonCard: {
-    width: 235, borderRadius: 22, padding: 20,
-    borderWidth: 1, borderColor: 'rgba(0,0,0,0.04)',
-  },
-  seasonIcon:      { fontSize: 30, marginBottom: 8 },
-  seasonLabel:     { fontSize: 15, fontWeight: '700', marginBottom: 14 },
-  seasonItem:      { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 12 },
-  seasonDot:       { width: 6, height: 6, borderRadius: 3, marginTop: 6, flexShrink: 0 },
-  seasonItemTitle: { fontSize: 13, fontWeight: '700', marginBottom: 4 },
-  seasonItemBody:  { fontSize: 12, color: C.ink2, lineHeight: 20 },
+  header: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 8 },
+  title:    { fontSize: 26, fontWeight: '800', color: C.ink, marginBottom: 4 },
+  subtitle: { fontSize: 14, color: C.muted },
 
-  tipSection: { marginTop: 16 },
-  tipSectionLabel: {
-    fontSize: 14, fontWeight: '700', color: C.ink,
-    paddingHorizontal: 20, marginBottom: 10,
+  genBtn: {
+    marginHorizontal: 16, marginTop: 16, marginBottom: 8,
+    borderRadius: 18, height: 56,
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#7C5CFC', shadowOpacity: 0.3,
+    shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 5,
   },
-  tipCard: {
-    backgroundColor: C.card, borderRadius: 20,
-    marginHorizontal: 16,
-    paddingHorizontal: 18, paddingVertical: 6,
+  genBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
+
+  section: { marginTop: 20, marginHorizontal: 16 },
+  categoryBadge: {
+    alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 5,
+    borderRadius: 999, marginBottom: 8,
+  },
+  categoryLabel: { fontSize: 12, fontWeight: '700' },
+
+  card: {
+    backgroundColor: C.card, borderRadius: 18,
+    paddingHorizontal: 18, paddingVertical: 4,
     shadowColor: '#7C5CFC', shadowOpacity: 0.05,
     shadowRadius: 10, shadowOffset: { width: 0, height: 2 }, elevation: 2,
   },
-  tipDivider: { height: 1, backgroundColor: C.line, marginVertical: 2 },
-  tipRow:     { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 15 },
-  tipDot:     { width: 6, height: 6, borderRadius: 3, marginTop: 6, flexShrink: 0 },
-  tipLabel:   { fontSize: 14, fontWeight: '700', marginBottom: 4 },
-  tipBody:    { fontSize: 13, color: C.ink2, lineHeight: 21 },
+  divider:  { height: 1, backgroundColor: C.line },
+  themeRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 16 },
+  dot:      { width: 7, height: 7, borderRadius: 4, flexShrink: 0 },
+  themeText:{ fontSize: 14, color: C.ink, fontWeight: '500', flex: 1, lineHeight: 22 },
+
+  empty: { alignItems: 'center', marginTop: 60 },
+  emptyText: { fontSize: 14, color: C.muted },
 });

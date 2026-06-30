@@ -236,7 +236,6 @@ export default function HomeScreen() {
           <View style={styles.header}>
             <View style={styles.headerTop}>
               <Text style={styles.stepText}>STEP 1 / 3</Text>
-              <Text style={{ fontSize: 28 }}>💑</Text>
             </View>
             <Text style={styles.title}>デートのヒアリング</Text>
             <Text style={styles.subtitle}>いくつか教えてね。ふたりにぴったりのプランを提案します。</Text>
