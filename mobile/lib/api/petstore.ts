@@ -7,6 +7,7 @@
  */
 import axios from 'axios';
 import type {
+  AxiosInstance,
   AxiosRequestConfig,
   AxiosResponse
 } from 'axios';
@@ -100,6 +101,15 @@ export interface DtoPlanResponse {
   weather?: DtoWeatherInfo;
 }
 
+export interface DtoTalkCategory {
+  label?: string;
+  themes?: string[];
+}
+
+export interface DtoTalkThemeResponse {
+  categories?: DtoTalkCategory[];
+}
+
 export interface DtoUserResponse {
   email?: string;
   id?: number;
@@ -112,15 +122,20 @@ export type PostPlans400 = {[key: string]: string};
 
 export type PostPlans500 = {[key: string]: string};
 
+export type GetTalksThemesParams = {
+/**
+ * カテゴリあたりのテーマ件数（デフォルト2）
+ */
+count?: number;
+};
+
+export type GetTalksThemes500 = {[key: string]: string};
+
 export type GetUsers500 = {[key: string]: string};
 
 export type PostUsers400 = {[key: string]: string};
 
 export type PostUsers500 = {[key: string]: string};
-
-export type DeleteUsersId400 = {[key: string]: string};
-
-export type DeleteUsersId500 = {[key: string]: string};
 
 export type GetUsersId400 = {[key: string]: string};
 
@@ -132,13 +147,18 @@ export type PutUsersId400 = {[key: string]: string};
 
 export type PutUsersId500 = {[key: string]: string};
 
+export type DeleteUsersId400 = {[key: string]: string};
+
+export type DeleteUsersId500 = {[key: string]: string};
+
+export const getDatePlanAPI = (axiosInstance: AxiosInstance = axios) => {
 /**
  * @summary ヘルスチェック
  */
-export const getHealth = (
+const getHealth = (
      options?: AxiosRequestConfig
  ): Promise<AxiosResponse<GetHealth200>> => {
-    return axios.get(
+    return axiosInstance.get(
       `/health`,options
     );
   }
@@ -146,22 +166,35 @@ export const getHealth = (
 /**
  * @summary デートプランを生成する
  */
-export const postPlans = (
+const postPlans = (
     dtoCreatePlanRequest: DtoCreatePlanRequest, options?: AxiosRequestConfig
  ): Promise<AxiosResponse<DtoPlanResponse>> => {
-    return axios.post(
+    return axiosInstance.post(
       `/plans`,
       dtoCreatePlanRequest,options
     );
   }
 
 /**
+ * @summary 会話テーマ一覧を取得する
+ */
+const getTalksThemes = (
+    params?: GetTalksThemesParams, options?: AxiosRequestConfig
+ ): Promise<AxiosResponse<DtoTalkThemeResponse>> => {
+    return axiosInstance.get(
+      `/talks/themes`,{
+    ...options,
+        params: {...params, ...options?.params},}
+    );
+  }
+
+/**
  * @summary ユーザー一覧取得
  */
-export const getUsers = (
+const getUsers = (
      options?: AxiosRequestConfig
  ): Promise<AxiosResponse<DtoUserResponse[]>> => {
-    return axios.get(
+    return axiosInstance.get(
       `/users`,options
     );
   }
@@ -169,33 +202,22 @@ export const getUsers = (
 /**
  * @summary ユーザー作成
  */
-export const postUsers = (
+const postUsers = (
     dtoCreateUserRequest: DtoCreateUserRequest, options?: AxiosRequestConfig
  ): Promise<AxiosResponse<DtoUserResponse>> => {
-    return axios.post(
+    return axiosInstance.post(
       `/users`,
       dtoCreateUserRequest,options
     );
   }
 
 /**
- * @summary ユーザー削除
- */
-export const deleteUsersId = (
-    id: number, options?: AxiosRequestConfig
- ): Promise<AxiosResponse<void>> => {
-    return axios.delete(
-      `/users/${id}`,options
-    );
-  }
-
-/**
  * @summary ユーザー取得
  */
-export const getUsersId = (
+const getUsersId = (
     id: number, options?: AxiosRequestConfig
  ): Promise<AxiosResponse<DtoUserResponse>> => {
-    return axios.get(
+    return axiosInstance.get(
       `/users/${id}`,options
     );
   }
@@ -203,20 +225,33 @@ export const getUsersId = (
 /**
  * @summary ユーザー更新
  */
-export const putUsersId = (
+const putUsersId = (
     id: number,
     dtoCreateUserRequest: DtoCreateUserRequest, options?: AxiosRequestConfig
  ): Promise<AxiosResponse<DtoUserResponse>> => {
-    return axios.put(
+    return axiosInstance.put(
       `/users/${id}`,
       dtoCreateUserRequest,options
     );
   }
 
+/**
+ * @summary ユーザー削除
+ */
+const deleteUsersId = (
+    id: number, options?: AxiosRequestConfig
+ ): Promise<AxiosResponse<void>> => {
+    return axiosInstance.delete(
+      `/users/${id}`,options
+    );
+  }
+
+return {getHealth,postPlans,getTalksThemes,getUsers,postUsers,getUsersId,putUsersId,deleteUsersId}};
 export type GetHealthResult = AxiosResponse<GetHealth200>
 export type PostPlansResult = AxiosResponse<DtoPlanResponse>
+export type GetTalksThemesResult = AxiosResponse<DtoTalkThemeResponse>
 export type GetUsersResult = AxiosResponse<DtoUserResponse[]>
 export type PostUsersResult = AxiosResponse<DtoUserResponse>
-export type DeleteUsersIdResult = AxiosResponse<void>
 export type GetUsersIdResult = AxiosResponse<DtoUserResponse>
 export type PutUsersIdResult = AxiosResponse<DtoUserResponse>
+export type DeleteUsersIdResult = AxiosResponse<void>

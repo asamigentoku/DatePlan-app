@@ -88,6 +88,42 @@ const docTemplate = `{
                 }
             }
         },
+        "/talks/themes": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "talks"
+                ],
+                "summary": "会話テーマ一覧を取得する",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "カテゴリあたりのテーマ件数（デフォルト2）",
+                        "name": "count",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.TalkThemeResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/users": {
             "get": {
                 "security": [
@@ -534,6 +570,31 @@ const docTemplate = `{
                 "stay_time": {
                     "description": "滞在時間目安(分)",
                     "type": "integer"
+                }
+            }
+        },
+        "dto.TalkCategory": {
+            "type": "object",
+            "properties": {
+                "label": {
+                    "type": "string"
+                },
+                "themes": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "dto.TalkThemeResponse": {
+            "type": "object",
+            "properties": {
+                "categories": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.TalkCategory"
+                    }
                 }
             }
         },

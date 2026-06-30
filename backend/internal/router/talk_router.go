@@ -1,19 +1,19 @@
 package router
 
 import (
-	"github.com/asamigentoku/DatePlan-app/pkg/config"
+	"github.com/asamigentoku/DatePlan-app/internal/handler"
+	"github.com/asamigentoku/DatePlan-app/internal/repository"
+	"github.com/asamigentoku/DatePlan-app/internal/service"
 	"github.com/gin-gonic/gin"
 )
 
-//トークテーマとミッションの生成
+func setupTalkRouter(rg *gin.RouterGroup) {
+	talkRepo := repository.NewTalkRepository()
+	talkSvc := service.NewTalkService(talkRepo)
+	talkH := handler.NewTalkHandler(talkSvc)
 
-func setupTalkRouter(rg *gin.RouterGroup, cfg *config.Config) {
-
-	//planSvc := service.NewPlanService(googleClient, groqClient, chatgptClient, weatherClient, nominatimClient, pixabayClient, placeCacheRepo, imgCacheRepo, geoCacheRepo, weatherCacheRepo)
-	//planH := handler.NewPlanHandler(planSvc)
-	//
-	//plans := rg.Group("/plans")
-	//{
-	//	plans.POST("", planH.MakePlans)
-	//}
+	talks := rg.Group("/talks")
+	{
+		talks.GET("/themes", talkH.GetTalkThemes)
+	}
 }

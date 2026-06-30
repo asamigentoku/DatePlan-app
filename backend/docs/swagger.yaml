@@ -135,6 +135,22 @@ definitions:
         description: 滞在時間目安(分)
         type: integer
     type: object
+  dto.TalkCategory:
+    properties:
+      label:
+        type: string
+      themes:
+        items:
+          type: string
+        type: array
+    type: object
+  dto.TalkThemeResponse:
+    properties:
+      categories:
+        items:
+          $ref: '#/definitions/dto.TalkCategory'
+        type: array
+    type: object
   dto.UserResponse:
     properties:
       email:
@@ -210,6 +226,29 @@ paths:
       summary: デートプランを生成する
       tags:
       - plans
+  /talks/themes:
+    get:
+      parameters:
+      - description: カテゴリあたりのテーマ件数（デフォルト2）
+        in: query
+        name: count
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.TalkThemeResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 会話テーマ一覧を取得する
+      tags:
+      - talks
   /users:
     get:
       produces:
