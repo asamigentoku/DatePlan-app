@@ -16,7 +16,6 @@ type Config struct {
 	OPENAIAPIKEY    string
 	PixabayAPIKey   string
 	MongoUri        string
-	MongoDbName     string
 }
 
 func Load() (*Config, error) {
@@ -38,6 +37,5 @@ func Load() (*Config, error) {
 		OPENAIAPIKEY:    viper.GetString("OPENAI_API_KEY"),
 		PixabayAPIKey:   viper.GetString("PIXABAY_API_KEY"),
 		MongoUri:        viper.GetString("MONGO_URI"),
-		MongoDbName:     viper.GetString("MONGO_DB_NAME"),
 	}, nil
 }

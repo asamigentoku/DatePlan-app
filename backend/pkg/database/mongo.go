@@ -3,6 +3,8 @@ package database
 import (
 	"context"
 	"fmt"
+	"net/url"
+	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
@@ -14,13 +16,22 @@ type MongoClient struct {
 	DB     *mongo.Database
 }
 
-func NewMongoClient(uri, dbName string) (*MongoClient, error) {
+func NewMongoClient(uri string) (*MongoClient, error) {
+	u, err := url.Parse(uri)
+	if err != nil {
+		return nil, fmt.Errorf("MongoDB URI parse失敗: %w", err)
+	}
+	dbName := strings.TrimPrefix(u.Path, "/")
+	if dbName == "" {
+		return nil, fmt.Errorf("MongoDB URI にDB名が含まれていません: %s", uri)
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	serverAPI := options.ServerAPI(options.ServerAPIVersion1)
 	opts := options.Client().
-		ApplyURI(uri). // mongodb+srv://... 形式
+		ApplyURI(uri).
 		SetServerAPIOptions(serverAPI)
 
 	client, err := mongo.Connect(ctx, opts)
@@ -28,7 +39,6 @@ func NewMongoClient(uri, dbName string) (*MongoClient, error) {
 		return nil, fmt.Errorf("MongoDB Atlas接続失敗: %w", err)
 	}
 
-	// 疎通確認
 	if err := client.Ping(ctx, nil); err != nil {
 		return nil, fmt.Errorf("MongoDB Atlas ping失敗: %w", err)
 	}

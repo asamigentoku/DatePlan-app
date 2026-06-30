@@ -42,7 +42,7 @@ func main() {
 	}
 
 	//mongoDBの初期化
-	mongodb, err := database.NewMongoClient(cfg.MongoUri, cfg.MongoDbName)
+	mongodb, err := database.NewMongoClient(cfg.MongoUri)
 	if err != nil {
 		log.Fatal("Failed to connect Mongodatabase:", err)
 	}
