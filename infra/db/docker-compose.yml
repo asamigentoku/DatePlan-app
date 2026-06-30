@@ -1,28 +1,37 @@
 services:
   db:
     image: postgres:16-alpine
+    container_name: db
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: mydb
+      POSTGRES_USER: ${POSTGRES_USER:-user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-mydb}
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-user} -d ${POSTGRES_DB:-mydb}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
   mongodb:
-    image: mongo:6                  # ← buildをやめて公式イメージを直接使う
+    image: mongo:6
     container_name: mongodb
-    restart: always
+    restart: unless-stopped
     ports:
       - "27017:27017"
-    environment: # ← Dockerfileの環境変数をここに移す
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: password
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-password}
     volumes:
       - mongodb_data:/data/db
     networks:
       - app_network
-
 
 volumes:
   pgdata:
@@ -30,7 +39,7 @@ volumes:
     name: mongodb_data
     driver: local
 
-
 networks:
   app_network:
+    name: app_network
     driver: bridge

@@ -28,7 +28,11 @@ jobs:
       - name: Login to Azure Container Registry
         run: az acr login --name ${{ secrets.ACR_NAME }}
 
-      # 4. Docker イメージをビルドして ACR へプッシュ
+      # 4. Docker Buildx のセットアップ（build-push-action の実行に必須）
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # 5. Docker イメージをビルドして ACR へプッシュ
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
@@ -38,10 +42,9 @@ jobs:
             ${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
             ${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:latest
 
-      # 5. Azure Web App へデプロイ（images で compose のイメージを上書き）
+      # 6. Azure Web App へデプロイ（シングルコンテナ — backend イメージのみ）
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ secrets.AZURE_WEBAPP_NAME }}
           images: ${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-          configuration-file: docker-compose.yml
