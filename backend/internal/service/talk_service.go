@@ -23,7 +23,10 @@ func (s *talkService) GetTalkThemes(req *dto.TalkThemeRequest) (*dto.TalkThemeRe
 		count = 2
 	}
 
-	all := s.repo.GetThemes()
+	all, err := s.repo.GetThemes()
+	if err != nil {
+		return nil, err
+	}
 	categories := make([]dto.TalkCategory, 0, len(all))
 	for _, cat := range all {
 		themes := cat.Themes

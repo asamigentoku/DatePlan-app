@@ -39,7 +39,7 @@ func New(cfg *config.Config, db *gorm.DB, mongodb *database.MongoClient) *gin.En
 
 	v1 := r.Group("/api/v1")
 	setupPlanRouters(v1, cfg, db, mongodb)
-	setupTalkRouter(v1)
+	setupTalkRouter(v1, db)
 	{
 		users := v1.Group("/users")
 		users.Use(middleware.Auth(cfg.JWTSecret))

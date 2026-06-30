@@ -33,9 +33,12 @@ func main() {
 		log.Fatal("Failed to connect database:", err)
 	}
 
-	//テーブル挿入、モデル参照
 	if err := database.Migrate(db); err != nil {
 		log.Fatal("Failed to migrate database:", err)
+	}
+
+	if err := database.Seed(db); err != nil {
+		log.Fatal("Failed to seed database:", err)
 	}
 
 	//mongoDBの初期化

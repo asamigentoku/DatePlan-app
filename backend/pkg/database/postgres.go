@@ -44,8 +44,8 @@ func Connect(cfg *config.Config) (*gorm.DB, error) {
 func Migrate(db *gorm.DB) error {
 	//データベースにテーブルを登録する
 	return db.AutoMigrate(
-		//構造体が存在する場所自体から取得する
 		&rds_models.User{},
-		// 追加モデルをここに列挙する
+		&rds_models.TalkCategory{},
+		&rds_models.TalkTheme{},
 	)
 }

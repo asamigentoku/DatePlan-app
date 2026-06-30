@@ -5,10 +5,11 @@ import (
 	"github.com/asamigentoku/DatePlan-app/internal/repository"
 	"github.com/asamigentoku/DatePlan-app/internal/service"
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
-func setupTalkRouter(rg *gin.RouterGroup) {
-	talkRepo := repository.NewTalkRepository()
+func setupTalkRouter(rg *gin.RouterGroup, db *gorm.DB) {
+	talkRepo := repository.NewTalkRepository(db)
 	talkSvc := service.NewTalkService(talkRepo)
 	talkH := handler.NewTalkHandler(talkSvc)
 
