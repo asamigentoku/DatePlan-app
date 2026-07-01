@@ -21,6 +21,10 @@ expo-env.d.ts
 # Metro
 .metro-health-check*
 
+# Tamagui
+.tamagui/
+tamagui-web.css
+
 # debug
 npm-debug.*
 yarn-debug.*

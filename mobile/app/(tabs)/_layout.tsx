@@ -2,7 +2,7 @@ import { Tabs } from 'expo-router';
 import React from 'react';
 
 import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
+import { AnimatedTabIcon } from '@/components/ui/animated-tab-icon';
 
 export default function TabLayout() {
   return (
@@ -31,8 +31,8 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'ホーム',
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={24} name="heart.fill" color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <AnimatedTabIcon name="heart.fill" color={color} focused={focused} />
           ),
         }}
       />
@@ -40,8 +40,8 @@ export default function TabLayout() {
         name="saved"
         options={{
           title: 'プラン',
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={24} name="bookmark.fill" color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <AnimatedTabIcon name="bookmark.fill" color={color} focused={focused} />
           ),
         }}
       />
@@ -49,8 +49,8 @@ export default function TabLayout() {
         name="discover"
         options={{
           title: 'トーク',
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={24} name="bubble.left.and.bubble.right.fill" color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <AnimatedTabIcon name="bubble.left.and.bubble.right.fill" color={color} focused={focused} />
           ),
         }}
       />

@@ -1,53 +1,31 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
+import { Alert, ScrollView, Text as RNText } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Text, XStack, YStack } from 'tamagui';
+import { LinearGradient } from 'tamagui/linear-gradient';
 
-import type {
-  DtoPlanResponse,
-  DtoSpotInfo,
-} from '@/lib/api/petstore';
+import { PlanRouteMap, type RouteSpot } from '@/components/PlanRouteMap';
+import { CategoryIcon } from '@/components/ui/category-icon';
+import { dynColor, spotCategoryOf } from '@/constants/categories';
+import { Brand, Radius } from '@/constants/theme';
+import type { DtoPlanResponse, DtoSpotInfo } from '@/lib/api/petstore';
 import type { Plan } from '@/lib/date-plan-types';
 import { getCurrentPlan } from '@/lib/plan-store';
 import { savePlan } from '@/lib/saved-plans';
-import { PlanRouteMap, type RouteSpot } from '@/components/PlanRouteMap';
-
-// ─── Design tokens ─────────────────────────────────────────────────────────
-const C = {
-  bg:     '#F7F5FF',
-  card:   '#FFFFFF',
-  lav:    '#EEE9FF',
-  purple: '#7C5CFC',
-  ink:    '#1A1033',
-  ink2:   '#5B5280',
-  muted:  '#9B91C8',
-  line:   '#EDE9FF',
-  mint:   '#2DD4BF',
-  coral:  '#F97316',
-};
 
 const SAVE_DONE_GRAD = ['#059669', '#10B981'] as const;
-const BTN_GRAD       = ['#7C5CFC', '#5B3FE0'] as const;
+const BTN_GRAD = [Brand.purpleLight, Brand.purple, Brand.purpleDark] as const;
 
-// ─── Category config ────────────────────────────────────────────────────────
-const CAT: Record<string, { color: string; emoji: string }> = {
-  'カフェ':      { color: '#D97706', emoji: '☕' },
-  '公園':        { color: '#059669', emoji: '🌳' },
-  '映画館':      { color: '#7C5CFC', emoji: '🎬' },
-  'レストラン':  { color: '#DC2626', emoji: '🍽️' },
-  '美術館':      { color: '#0284C7', emoji: '🎨' },
-  '神社・寺':    { color: '#EA580C', emoji: '⛩️' },
-  'ショッピング':{ color: '#0D9488', emoji: '🛍️' },
+// 地図ピン（PlanRouteMap 系）だけは絵文字のまま軽量に表現する
+const PIN_EMOJI: Record<string, string> = {
+  'カフェ': '☕', '公園': '🌳', '映画館': '🎬', 'レストラン': '🍽️',
+  '美術館': '🎨', '神社・寺': '⛩️', 'ショッピング': '🛍️',
 };
-const DEFAULT_CAT = { color: '#7C5CFC', emoji: '📍' };
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
-function catOf(category?: string) {
-  return CAT[category ?? ''] ?? DEFAULT_CAT;
-}
-
 function generateTimes(spots: DtoSpotInfo[]): string[] {
   let mins = 11 * 60;
   return spots.map(s => {
@@ -85,64 +63,93 @@ function toPlan(
 }
 
 // ─── Timeline row ──────────────────────────────────────────────────────────
-function SpotRow({ spot, index, time, isLast, nextColor }: {
+function SpotRow({ spot, time, isLast, nextColor }: {
   spot: DtoSpotInfo;
-  index: number; time: string; isLast: boolean; nextColor: string;
+  time: string; isLast: boolean; nextColor: string;
 }) {
-  const cat = catOf(spot.category);
+  const cat = spotCategoryOf(spot.category);
   const photo = spot.photos?.[0];
 
   return (
-    <View style={styles.row}>
+    <XStack>
       {/* Time column */}
-      <View style={styles.timeCol}>
-        <Text style={styles.timeText}>{time}</Text>
+      <YStack width={52} flexShrink={0} alignItems="flex-end" paddingRight="$2.5" paddingTop="$2">
+        <Text fontWeight="800" fontSize={15} color={Brand.ink}>{time}</Text>
         {spot.stay_time != null ? (
-          <Text style={styles.durText}>{spot.stay_time}分</Text>
+          <Text fontWeight="600" fontSize={10.5} color={Brand.muted} marginTop="$1">{spot.stay_time}分</Text>
         ) : null}
-      </View>
+      </YStack>
 
       {/* Spine */}
-      <View style={[styles.spine, isLast && { alignSelf: 'flex-start' }]}>
-        <View style={[styles.circle, { backgroundColor: cat.color, shadowColor: cat.color }]}>
-          <Text style={{ fontSize: 16 }}>{cat.emoji}</Text>
-        </View>
+      <YStack width={34} flexShrink={0} alignItems="center" alignSelf={isLast ? 'flex-start' : 'stretch'}>
+        <LinearGradient
+          colors={[...cat.gradient]}
+          width={34}
+          height={34}
+          borderRadius={17}
+          alignItems="center"
+          justifyContent="center"
+          shadowOffset={{ width: 0, height: 4 }}
+          shadowOpacity={0.4}
+          shadowRadius={8}
+          elevation={4}
+          zIndex={1}>
+          <CategoryIcon icon={cat.icon} size={16} color="#fff" />
+        </LinearGradient>
         {!isLast && (
           <LinearGradient
-            colors={[cat.color, nextColor]}
-            style={styles.connector}
+            colors={[dynColor(cat.color), dynColor(nextColor)]}
+            flex={1}
+            width={4}
+            borderRadius={2}
+            minHeight={20}
           />
         )}
-      </View>
+      </YStack>
 
       {/* Card */}
-      <View style={{ flex: 1, paddingLeft: 12, paddingBottom: isLast ? 4 : 20 }}>
-        <View style={[styles.spotCard, { borderLeftColor: cat.color }]}>
+      <YStack flex={1} paddingLeft="$3" paddingBottom={isLast ? '$1' : '$5'}>
+        <YStack
+          backgroundColor={Brand.card}
+          borderRadius={Radius.lg}
+          borderLeftWidth={4}
+          borderLeftColor={dynColor(cat.color)}
+          overflow="hidden"
+          shadowColor={Brand.purple}
+          shadowOpacity={0.06}
+          shadowRadius={10}
+          shadowOffset={{ width: 0, height: 2 }}
+          elevation={2}>
           {photo ? (
-            <Image source={photo} style={styles.spotPhoto} contentFit="cover" transition={200} />
+            <Image source={photo} style={{ width: '100%', height: 110 }} contentFit="cover" transition={200} />
           ) : null}
-          <View style={styles.spotBody}>
-            <View style={styles.spotHeader}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.spotName}>{spot.name}</Text>
-                <Text style={[styles.spotCat, { color: cat.color }]}>
+          <YStack padding="$3.5">
+            <XStack alignItems="flex-start" gap="$2">
+              <YStack flex={1}>
+                <Text fontSize={15.5} fontWeight="700" color={Brand.ink} lineHeight={20} marginBottom="$1">
+                  {spot.name}
+                </Text>
+                <Text fontSize={12.5} fontWeight="600" color={dynColor(cat.color)}>
                   {spot.category ?? ''}
                   {spot.price_range != null ? `  ${'¥'.repeat(Math.min(spot.price_range, 4))}` : ''}
                 </Text>
-              </View>
+              </YStack>
               {spot.rating != null && spot.rating > 0 ? (
-                <View style={styles.ratingBadge}>
-                  <Text style={styles.ratingText}>⭐ {spot.rating.toFixed(1)}</Text>
-                </View>
+                <XStack alignItems="center" gap="$1" backgroundColor="#FFFBEB" paddingHorizontal="$2" paddingVertical="$1" borderRadius="$2">
+                  <Ionicons name="star" size={11} color="#D97706" />
+                  <Text fontSize={12} color="#D97706" fontWeight="600">{spot.rating.toFixed(1)}</Text>
+                </XStack>
               ) : null}
-            </View>
+            </XStack>
             {spot.description ? (
-              <Text style={styles.spotDesc} numberOfLines={3}>{spot.description}</Text>
+              <Text fontSize={13} color={Brand.ink2} lineHeight={21} marginTop="$2" numberOfLines={3}>
+                {spot.description}
+              </Text>
             ) : null}
-          </View>
-        </View>
-      </View>
-    </View>
+          </YStack>
+        </YStack>
+      </YStack>
+    </XStack>
   );
 }
 
@@ -156,14 +163,21 @@ export default function PlanResultScreen() {
 
   if (!current) {
     return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.errorWrap}>
-          <Text style={{ fontSize: 48 }}>😢</Text>
-          <Text style={styles.errorText}>プランデータが見つかりません</Text>
-          <Pressable onPress={() => router.back()} style={styles.errorBtn}>
-            <Text style={styles.errorBtnText}>戻る</Text>
-          </Pressable>
-        </View>
+      <SafeAreaView style={{ flex: 1, backgroundColor: Brand.bg }}>
+        <YStack flex={1} alignItems="center" justifyContent="center" gap="$3.5">
+          <Ionicons name="sad-outline" size={48} color={Brand.muted} />
+          <Text fontSize={15} color={Brand.ink2}>プランデータが見つかりません</Text>
+          <XStack
+            marginTop="$2"
+            backgroundColor={Brand.purple}
+            paddingHorizontal="$7"
+            paddingVertical="$3.5"
+            borderRadius={Radius.md}
+            onPress={() => router.back()}
+            pressStyle={{ opacity: 0.85 }}>
+            <RNText style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>戻る</RNText>
+          </XStack>
+        </YStack>
       </SafeAreaView>
     );
   }
@@ -183,8 +197,8 @@ export default function PlanResultScreen() {
       name: s.name ?? '',
       lat: s.lat,
       lng: s.lng,
-      color: catOf(s.category).color,
-      emoji: catOf(s.category).emoji,
+      color: spotCategoryOf(s.category).color,
+      emoji: PIN_EMOJI[s.category ?? ''] ?? '📍',
     }));
 
   const handleSave = async () => {
@@ -197,222 +211,204 @@ export default function PlanResultScreen() {
     }
   };
 
-  const weatherIcon = api.weather?.status === '雨' ? '🌧' : api.weather?.status === '曇り' ? '☁️' : '☀️';
+  const weatherIcon = api.weather?.status === '雨' ? 'rainy' : api.weather?.status === '曇り' ? 'cloudy' : 'sunny';
 
   return (
-    <SafeAreaView style={styles.safe} edges={['bottom']}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: Brand.bg }} edges={['bottom']}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
 
         {/* ── Top bar ── */}
-        <View style={styles.topBar}>
-          <Pressable onPress={() => router.back()} style={styles.backBtn}>
-            <Text style={styles.backBtnText}>‹</Text>
-          </Pressable>
-          <View style={styles.statusPill}>
-            <Text style={styles.statusPillText}>できあがり</Text>
-          </View>
-        </View>
-        <View style={styles.topMeta}>
-          <Text style={styles.planTitle}>{api.theme ?? 'デートプラン'}</Text>
-          <View style={styles.metaRow}>
-            <Text style={[styles.metaTag, { color: C.purple }]}>📍 {meta.area}</Text>
-            {meta.budget ? <Text style={[styles.metaTag, { color: C.mint }]}>💰 {meta.budget}</Text> : null}
-            {api.weather ? (
-              <Text style={[styles.metaTag, { color: C.coral }]}>
-                {weatherIcon} {api.weather.status}{api.weather.temperature != null ? ` ${api.weather.temperature}°C` : ''}
-              </Text>
+        <XStack
+          alignItems="center"
+          justifyContent="space-between"
+          paddingTop="$14"
+          paddingHorizontal="$5"
+          paddingBottom="$1"
+          backgroundColor="#fff"
+          borderBottomWidth={1}
+          borderBottomColor={Brand.line}>
+          <XStack
+            width={36}
+            height={36}
+            borderRadius={999}
+            backgroundColor={Brand.lav}
+            alignItems="center"
+            justifyContent="center"
+            onPress={() => router.back()}
+            pressStyle={{ opacity: 0.8 }}>
+            <Ionicons name="chevron-back" size={20} color={Brand.purple} />
+          </XStack>
+          <XStack backgroundColor={Brand.lav} paddingHorizontal="$3" paddingVertical="$1.5" borderRadius={Radius.pill}>
+            <Text fontWeight="700" fontSize={11.5} color={Brand.purple} letterSpacing={0.5}>できあがり</Text>
+          </XStack>
+        </XStack>
+        <YStack backgroundColor="#fff" paddingHorizontal="$5" paddingTop="$2.5" paddingBottom="$4.5">
+          <Text fontSize={26} fontWeight="700" color={Brand.ink} lineHeight={32} marginBottom="$2.5">
+            {api.theme ?? 'デートプラン'}
+          </Text>
+          <XStack flexWrap="wrap" gap="$3.5">
+            <XStack alignItems="center" gap="$1">
+              <Ionicons name="location" size={13} color={Brand.purple} />
+              <Text fontSize={13} fontWeight="700" color={Brand.purple}>{meta.area}</Text>
+            </XStack>
+            {meta.budget ? (
+              <XStack alignItems="center" gap="$1">
+                <Ionicons name="wallet" size={13} color={Brand.mint} />
+                <Text fontSize={13} fontWeight="700" color={Brand.mint}>{meta.budget}</Text>
+              </XStack>
             ) : null}
-          </View>
-        </View>
+            {api.weather ? (
+              <XStack alignItems="center" gap="$1">
+                <Ionicons name={weatherIcon} size={13} color={Brand.coral} />
+                <Text fontSize={13} fontWeight="700" color={Brand.coral}>
+                  {api.weather.status}{api.weather.temperature != null ? ` ${api.weather.temperature}°C` : ''}
+                </Text>
+              </XStack>
+            ) : null}
+          </XStack>
+        </YStack>
 
         {/* ── Stat strip ── */}
-        <View style={styles.statStrip}>
+        <XStack gap="$2" paddingHorizontal="$4.5" paddingVertical="$3.5">
           {[
-            { icon: '⏱', value: `約${totalHours}h`, color: C.purple },
-            { icon: '📍', value: `${spots.length}スポット`, color: C.mint },
-            { icon: '💰', value: meta.budget || '—', color: C.coral },
+            { icon: 'time' as const, value: `約${totalHours}h`, color: Brand.purple },
+            { icon: 'location' as const, value: `${spots.length}スポット`, color: Brand.mint },
+            { icon: 'wallet' as const, value: meta.budget || '—', color: Brand.coral },
           ].map(s => (
-            <View key={s.value} style={styles.statCard}>
-              <Text style={{ fontSize: 18 }}>{s.icon}</Text>
-              <Text style={[styles.statValue, { color: s.color }]}>{s.value}</Text>
-            </View>
+            <YStack
+              key={s.value}
+              flex={1}
+              backgroundColor={Brand.card}
+              borderRadius={Radius.md}
+              paddingVertical="$3"
+              alignItems="center"
+              gap="$1"
+              shadowColor={Brand.purple}
+              shadowOpacity={0.06}
+              shadowRadius={8}
+              shadowOffset={{ width: 0, height: 2 }}
+              elevation={2}>
+              <Ionicons name={s.icon} size={18} color={dynColor(s.color)} />
+              <Text fontWeight="800" fontSize={13} color={dynColor(s.color)}>{s.value}</Text>
+            </YStack>
           ))}
-        </View>
+        </XStack>
 
         {/* ── Route Map ── */}
         {routeSpots.length > 0 ? <PlanRouteMap spots={routeSpots} /> : null}
 
         {/* ── Timeline ── */}
-        <View style={styles.timeline}>
+        <YStack paddingHorizontal="$4.5" paddingTop="$2">
           {spots.map((spot, i) => (
             <SpotRow
               key={i}
               spot={spot}
-              index={i}
               time={times[i]}
               isLast={i === spots.length - 1}
-              nextColor={catOf(spots[i + 1]?.category).color}
+              nextColor={spotCategoryOf(spots[i + 1]?.category).color}
             />
           ))}
-        </View>
+        </YStack>
 
         {/* ── Movement summary ── */}
         {moves.length > 0 ? (
-          <View style={styles.moveSection}>
-            <Text style={styles.moveSectionLabel}>移動</Text>
+          <YStack
+            marginHorizontal="$4.5"
+            marginTop="$5"
+            backgroundColor={Brand.card}
+            borderRadius={Radius.lg}
+            padding="$4"
+            shadowColor={Brand.purple}
+            shadowOpacity={0.05}
+            shadowRadius={8}
+            shadowOffset={{ width: 0, height: 2 }}
+            elevation={1}>
+            <Text
+              fontSize={12}
+              fontWeight="700"
+              color={Brand.purple}
+              letterSpacing={0.4}
+              marginBottom="$3"
+              paddingLeft="$2.5"
+              borderLeftWidth={3}
+              borderLeftColor={Brand.purple}>
+              移動
+            </Text>
             {moves.map((m, i) => (
-              <View key={i} style={styles.moveRow}>
-                <Text style={styles.moveIcon}>
-                  {m.method === '電車' ? '🚃' : m.method === '車' ? '🚗' : '🚶'}
-                </Text>
-                <Text style={styles.moveText}>
+              <XStack key={i} alignItems="center" gap="$2.5" marginBottom="$2">
+                <Ionicons
+                  name={m.method === '電車' ? 'train' : m.method === '車' ? 'car' : 'walk'}
+                  size={16}
+                  color={Brand.ink2}
+                />
+                <Text fontSize={13} color={Brand.ink2} flex={1}>
                   {m.from} → {m.to}　{m.method}　約{m.duration}分
                 </Text>
-              </View>
+              </XStack>
             ))}
-          </View>
+          </YStack>
         ) : null}
 
         {/* ── Plan tip ── */}
         {api.description ? (
-          <View style={styles.tipCard}>
-            <Text style={styles.tipTitle}>プランのポイント</Text>
-            <Text style={styles.tipBody}>{api.description}</Text>
-          </View>
+          <YStack marginHorizontal="$4.5" marginTop="$3" backgroundColor={Brand.lav} borderRadius={Radius.lg} padding="$4">
+            <Text fontSize={13} fontWeight="700" color={Brand.purple} marginBottom="$2">プランのポイント</Text>
+            <Text fontSize={14} color={Brand.ink2} lineHeight={23}>{api.description}</Text>
+          </YStack>
         ) : null}
 
-        <View style={{ height: 100 }} />
+        <YStack height={100} />
       </ScrollView>
 
       {/* ── Save button ── */}
-      <View style={styles.footer}>
-        <View style={styles.footerRow}>
-          <Pressable onPress={() => router.back()} style={styles.editBtn}>
-            <Text style={styles.editBtnText}>✎</Text>
-          </Pressable>
-          <Pressable
-            onPress={saved ? undefined : handleSave} disabled={saved}
-            style={({ pressed }) => [{ flex: 1 }, pressed && !saved && { opacity: 0.8 }]}>
-            {saved ? (
-              <LinearGradient colors={SAVE_DONE_GRAD} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.saveBtn}>
-                <Text style={styles.saveBtnText}>✓  保存済み</Text>
-              </LinearGradient>
-            ) : (
-              <LinearGradient colors={BTN_GRAD} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.saveBtn}>
-                <Text style={styles.saveBtnText}>プランを保存する</Text>
-              </LinearGradient>
-            )}
-          </Pressable>
-        </View>
-      </View>
+      <YStack
+        position="absolute"
+        bottom={0}
+        left={0}
+        right={0}
+        paddingHorizontal="$4.5"
+        paddingBottom={30}
+        paddingTop="$3"
+        backgroundColor="rgba(247,245,255,0.97)"
+        borderTopWidth={1}
+        borderTopColor={Brand.line}>
+        <XStack gap="$2.5">
+          <XStack
+            width={56}
+            height={56}
+            borderRadius={Radius.xl}
+            backgroundColor={Brand.lav}
+            alignItems="center"
+            justifyContent="center"
+            onPress={() => router.back()}
+            pressStyle={{ opacity: 0.85 }}>
+            <Ionicons name="create-outline" size={22} color={Brand.purple} />
+          </XStack>
+          <LinearGradient
+            flex={1}
+            colors={saved ? [...SAVE_DONE_GRAD] : [...BTN_GRAD]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            height={56}
+            borderRadius={Radius.xl}
+            alignItems="center"
+            justifyContent="center"
+            flexDirection="row"
+            gap="$2"
+            shadowColor={Brand.purple}
+            shadowOpacity={0.32}
+            shadowRadius={16}
+            shadowOffset={{ width: 0, height: 6 }}
+            elevation={5}
+            onPress={saved ? undefined : handleSave}
+            pressStyle={saved ? undefined : { opacity: 0.85 }}>
+            {saved ? <Ionicons name="checkmark-circle" size={18} color="#fff" /> : null}
+            <RNText style={{ color: '#fff', fontSize: 16, fontWeight: '800' }}>
+              {saved ? '保存済み' : 'プランを保存する'}
+            </RNText>
+          </LinearGradient>
+        </XStack>
+      </YStack>
     </SafeAreaView>
   );
 }
-
-// ─── Styles ────────────────────────────────────────────────────────────────
-const styles = StyleSheet.create({
-  safe:    { flex: 1, backgroundColor: C.bg },
-  content: { paddingBottom: 24 },
-
-  errorWrap:    { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14 },
-  errorText:    { fontSize: 15, color: C.ink2 },
-  errorBtn:     { marginTop: 8, backgroundColor: C.purple, paddingHorizontal: 28, paddingVertical: 14, borderRadius: 14 },
-  errorBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-
-  topBar: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingTop: 56, paddingHorizontal: 20, paddingBottom: 4,
-    backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: C.line,
-  },
-  backBtn:     { width: 36, height: 36, borderRadius: 999, backgroundColor: C.lav, alignItems: 'center', justifyContent: 'center' },
-  backBtnText: { fontSize: 22, color: C.purple, lineHeight: 26, marginLeft: -2 },
-  statusPill:     { backgroundColor: C.lav, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 999 },
-  statusPillText: { fontWeight: '700', fontSize: 11.5, color: C.purple, letterSpacing: 0.5 },
-
-  topMeta:   { backgroundColor: '#fff', paddingHorizontal: 20, paddingTop: 10, paddingBottom: 18 },
-  planTitle: { fontSize: 26, fontWeight: '700', color: C.ink, lineHeight: 32, marginBottom: 10 },
-  metaRow:   { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
-  metaTag:   { fontSize: 13, fontWeight: '700' },
-
-  statStrip: { flexDirection: 'row', gap: 8, paddingHorizontal: 18, paddingVertical: 14 },
-  statCard: {
-    flex: 1, backgroundColor: C.card, borderRadius: 14,
-    paddingVertical: 12, alignItems: 'center', gap: 4,
-    shadowColor: '#7C5CFC', shadowOpacity: 0.06,
-    shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2,
-  },
-  statValue: { fontWeight: '800', fontSize: 13 },
-
-  timeline: { paddingHorizontal: 18, paddingTop: 8 },
-
-  row: { flexDirection: 'row' },
-
-  timeCol: { width: 52, flexShrink: 0, alignItems: 'flex-end', paddingRight: 10, paddingTop: 8 },
-  timeText: { fontWeight: '800', fontSize: 15, color: C.ink },
-  durText:  { fontWeight: '600', fontSize: 10.5, color: C.muted, marginTop: 2 },
-
-  spine: { width: 34, flexShrink: 0, alignItems: 'center', alignSelf: 'stretch' },
-  circle: {
-    width: 34, height: 34, borderRadius: 17,
-    alignItems: 'center', justifyContent: 'center',
-    shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4,
-    shadowRadius: 8, elevation: 4, zIndex: 1,
-  },
-  connector: { flex: 1, width: 4, borderRadius: 2, minHeight: 20 },
-
-  spotCard: {
-    backgroundColor: C.card, borderRadius: 16,
-    borderLeftWidth: 4, overflow: 'hidden',
-    shadowColor: '#7C5CFC', shadowOpacity: 0.06,
-    shadowRadius: 10, shadowOffset: { width: 0, height: 2 }, elevation: 2,
-  },
-  spotPhoto:  { width: '100%', height: 110 },
-  spotBody:   { padding: 14 },
-  spotHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  spotName:   { fontSize: 15.5, fontWeight: '700', color: C.ink, lineHeight: 20, marginBottom: 3 },
-  spotCat:    { fontSize: 12.5, fontWeight: '600' },
-  ratingBadge: { backgroundColor: '#FFFBEB', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
-  ratingText:  { fontSize: 12, color: '#D97706', fontWeight: '600' },
-  spotDesc:   { fontSize: 13, color: C.ink2, lineHeight: 21, marginTop: 8 },
-
-  moveSection: {
-    marginHorizontal: 18, marginTop: 20,
-    backgroundColor: C.card, borderRadius: 16, padding: 16,
-    shadowColor: '#7C5CFC', shadowOpacity: 0.05,
-    shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 1,
-  },
-  moveSectionLabel: {
-    fontSize: 12, fontWeight: '700', color: C.purple,
-    letterSpacing: 0.4, marginBottom: 12,
-    paddingLeft: 10, borderLeftWidth: 3, borderLeftColor: C.purple,
-  },
-  moveRow:  { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
-  moveIcon: { fontSize: 16 },
-  moveText: { fontSize: 13, color: C.ink2, flex: 1 },
-
-  tipCard: {
-    marginHorizontal: 18, marginTop: 12,
-    backgroundColor: C.lav, borderRadius: 16, padding: 16,
-  },
-  tipTitle: { fontSize: 13, fontWeight: '700', color: C.purple, marginBottom: 8 },
-  tipBody:  { fontSize: 14, color: C.ink2, lineHeight: 23 },
-
-  footer: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
-    paddingHorizontal: 18, paddingBottom: 30, paddingTop: 12,
-    backgroundColor: 'rgba(247,245,255,0.97)',
-    borderTopWidth: 1, borderTopColor: '#EDE9FF',
-  },
-  footerRow: { flexDirection: 'row', gap: 10 },
-  editBtn: {
-    width: 56, height: 56, borderRadius: 18,
-    backgroundColor: C.lav, alignItems: 'center', justifyContent: 'center',
-  },
-  editBtnText: { fontSize: 22, color: C.purple },
-  saveBtn: {
-    height: 56, borderRadius: 18, alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#7C5CFC', shadowOpacity: 0.32,
-    shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 5,
-  },
-  saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
-});

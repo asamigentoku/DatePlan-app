@@ -1,11 +1,15 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useState } from 'react';
+import { TamaguiProvider } from 'tamagui';
 import 'react-native-reanimated';
 
+import { LaunchSplash } from '@/components/launch-splash';
 import '@/lib/api/client';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import tamaguiConfig from '@/tamagui.config';
 
 const queryClient = new QueryClient();
 
@@ -26,20 +30,24 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   const _colorScheme = useColorScheme();
+  const [showSplash, setShowSplash] = useState(true);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider value={DefaultTheme}>
-        <Stack>
-            {/*Stack の一番最初の画面としてスタックされる、(tabs)はURLをただ隠すためのグループ*/}
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-<Stack.Screen name="notes" options={{ title: 'メモ' }} />
-          <Stack.Screen name="item/[id]" options={{ title: '詳細' }} />
-          <Stack.Screen name="plan-result" options={{ title: 'デートプラン' }} />
-        </Stack>
-        <StatusBar style="auto" />
-      </ThemeProvider>
-    </QueryClientProvider>
+    <TamaguiProvider config={tamaguiConfig} defaultTheme="light">
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider value={DefaultTheme}>
+          <Stack>
+              {/*Stack の一番最初の画面としてスタックされる、(tabs)はURLをただ隠すためのグループ*/}
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+            <Stack.Screen name="notes" options={{ title: 'メモ' }} />
+            <Stack.Screen name="item/[id]" options={{ title: '詳細' }} />
+            <Stack.Screen name="plan-result" options={{ title: 'デートプラン' }} />
+          </Stack>
+          <StatusBar style="auto" />
+          {showSplash ? <LaunchSplash onDismiss={() => setShowSplash(false)} /> : null}
+        </ThemeProvider>
+      </QueryClientProvider>
+    </TamaguiProvider>
   );
 }

@@ -1,31 +1,27 @@
-import { LinearGradient } from 'expo-linear-gradient';
-import { useState, useCallback } from 'react';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { useCallback, useState } from 'react';
+import { ScrollView, Text as RNText } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Text, XStack, YStack } from 'tamagui';
+import { LinearGradient } from 'tamagui/linear-gradient';
 
-const C = {
-  bg:     '#F7F5FF',
-  card:   '#FFFFFF',
-  lav:    '#EEE9FF',
-  purple: '#7C5CFC',
-  ink:    '#1A1033',
-  ink2:   '#5B5280',
-  muted:  '#9B91C8',
-  line:   '#EDE9FF',
-};
+import { dynColor } from '@/constants/categories';
+import { Brand, Radius } from '@/constants/theme';
 
 type Category = {
   label: string;
   color: string;
   bg: string;
+  icon: keyof typeof Ionicons.glyphMap;
   pool: string[];
 };
 
 const CATEGORIES: Category[] = [
   {
     label: '好きなもの',
-    color: '#7C5CFC',
-    bg: '#EEE9FF',
+    color: Brand.purple,
+    bg: Brand.lav,
+    icon: 'heart',
     pool: [
       '最近ハマってる食べ物は？',
       '子どもの頃に好きだったアニメは？',
@@ -37,8 +33,9 @@ const CATEGORIES: Category[] = [
   },
   {
     label: '将来・夢',
-    color: '#0284C7',
+    color: Brand.catSky,
     bg: '#E0F2FE',
+    icon: 'rocket',
     pool: [
       '5年後どんな生活してると思う？',
       '住んでみたい街や国はある？',
@@ -50,8 +47,9 @@ const CATEGORIES: Category[] = [
   },
   {
     label: '思い出・エピソード',
-    color: '#059669',
+    color: Brand.catGreen,
     bg: '#ECFDF5',
+    icon: 'book',
     pool: [
       '人生で一番笑った出来事は？',
       '子どもの頃の夢って何だった？',
@@ -63,8 +61,9 @@ const CATEGORIES: Category[] = [
   },
   {
     label: 'もしも・妄想',
-    color: '#EA580C',
+    color: Brand.catOrange,
     bg: '#FFF7ED',
+    icon: 'planet',
     pool: [
       '何にでもなれるなら何になりたい？',
       'タイムマシンで行くなら過去？未来？',
@@ -76,8 +75,9 @@ const CATEGORIES: Category[] = [
   },
   {
     label: 'お互いのこと',
-    color: '#7C5CFC',
+    color: Brand.purple,
     bg: '#F5F0FF',
+    icon: 'people',
     pool: [
       '第一印象ってどうだった？',
       'お互いの好きなところを3つ言うとしたら？',
@@ -100,7 +100,7 @@ type GeneratedItem = { category: Category; themes: string[] };
 
 export default function TalkScreen() {
   const [generated, setGenerated] = useState<GeneratedItem[]>([]);
-  const [generated_once, setGeneratedOnce] = useState(false);
+  const [generatedOnce, setGeneratedOnce] = useState(false);
 
   const generate = useCallback(() => {
     setGenerated(
@@ -110,95 +110,89 @@ export default function TalkScreen() {
   }, []);
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: Brand.bg }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 8 }} showsVerticalScrollIndicator={false}>
 
         {/* ── Header ── */}
-        <View style={styles.header}>
-          <Text style={styles.title}>トークテーマ</Text>
-          <Text style={styles.subtitle}>デート中の話題が思い浮かばないときに</Text>
-        </View>
+        <YStack paddingHorizontal="$5" paddingTop="$6" paddingBottom="$2">
+          <Text fontSize={26} fontWeight="800" color={Brand.ink} marginBottom="$1">トークテーマ</Text>
+          <Text fontSize={14} color={Brand.muted}>デート中の話題が思い浮かばないときに</Text>
+        </YStack>
 
         {/* ── Generate button ── */}
-        <Pressable style={({ pressed }) => [pressed && { opacity: 0.82 }]} onPress={generate}>
-          <LinearGradient
-            colors={['#7C5CFC', '#5B3FE0']}
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-            style={styles.genBtn}>
-            <Text style={styles.genBtnText}>
-              {generated_once ? '再生成する' : 'テーマを生成する'}
-            </Text>
-          </LinearGradient>
-        </Pressable>
+        <LinearGradient
+          colors={[Brand.purpleLight, Brand.purple, Brand.purpleDark]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          marginHorizontal="$4"
+          marginTop="$4"
+          marginBottom="$2"
+          borderRadius={Radius.xl}
+          height={56}
+          alignItems="center"
+          justifyContent="center"
+          flexDirection="row"
+          gap="$2"
+          shadowColor={Brand.purple}
+          shadowOpacity={0.3}
+          shadowRadius={16}
+          shadowOffset={{ width: 0, height: 6 }}
+          elevation={5}
+          onPress={generate}
+          pressStyle={{ opacity: 0.85 }}>
+          <Ionicons name={generatedOnce ? 'refresh' : 'sparkles'} size={18} color="#fff" />
+          <RNText style={{ color: '#fff', fontSize: 16, fontWeight: '800' }}>
+            {generatedOnce ? '再生成する' : 'テーマを生成する'}
+          </RNText>
+        </LinearGradient>
 
         {/* ── Results ── */}
         {generated.map(({ category, themes }) => (
-          <View key={category.label} style={styles.section}>
-            <View style={[styles.categoryBadge, { backgroundColor: category.bg }]}>
-              <Text style={[styles.categoryLabel, { color: category.color }]}>{category.label}</Text>
-            </View>
-            <View style={styles.card}>
+          <YStack key={category.label} marginTop="$5" marginHorizontal="$4">
+            <XStack
+              alignSelf="flex-start"
+              alignItems="center"
+              gap="$1.5"
+              backgroundColor={dynColor(category.bg)}
+              paddingHorizontal="$3"
+              paddingVertical="$1.5"
+              borderRadius={Radius.pill}
+              marginBottom="$2">
+              <Ionicons name={category.icon} size={13} color={category.color} />
+              <Text fontSize={12} fontWeight="700" color={dynColor(category.color)}>{category.label}</Text>
+            </XStack>
+            <YStack
+              backgroundColor={Brand.card}
+              borderRadius={Radius.xl}
+              paddingHorizontal="$4.5"
+              paddingVertical="$1"
+              shadowColor={Brand.purple}
+              shadowOpacity={0.05}
+              shadowRadius={10}
+              shadowOffset={{ width: 0, height: 2 }}
+              elevation={2}>
               {themes.map((theme, i) => (
-                <View key={theme}>
-                  {i > 0 && <View style={styles.divider} />}
-                  <View style={styles.themeRow}>
-                    <View style={[styles.dot, { backgroundColor: category.color }]} />
-                    <Text style={styles.themeText}>{theme}</Text>
-                  </View>
-                </View>
+                <YStack key={theme}>
+                  {i > 0 && <YStack height={1} backgroundColor={Brand.line} />}
+                  <XStack alignItems="center" gap="$3" paddingVertical="$4">
+                    <YStack width={7} height={7} borderRadius={4} flexShrink={0} backgroundColor={dynColor(category.color)} />
+                    <Text fontSize={14} color={Brand.ink} fontWeight="500" flex={1} lineHeight={22}>{theme}</Text>
+                  </XStack>
+                </YStack>
               ))}
-            </View>
-          </View>
+            </YStack>
+          </YStack>
         ))}
 
         {/* ── Empty state ── */}
-        {!generated_once && (
-          <View style={styles.empty}>
-            <Text style={styles.emptyText}>ボタンを押してテーマを生成してみよう</Text>
-          </View>
+        {!generatedOnce && (
+          <YStack alignItems="center" marginTop="$14">
+            <Text fontSize={14} color={Brand.muted}>ボタンを押してテーマを生成してみよう</Text>
+          </YStack>
         )}
 
-        <View style={{ height: 40 }} />
+        <YStack height={40} />
       </ScrollView>
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  safe:    { flex: 1, backgroundColor: C.bg },
-  content: { paddingBottom: 8 },
-
-  header: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 8 },
-  title:    { fontSize: 26, fontWeight: '800', color: C.ink, marginBottom: 4 },
-  subtitle: { fontSize: 14, color: C.muted },
-
-  genBtn: {
-    marginHorizontal: 16, marginTop: 16, marginBottom: 8,
-    borderRadius: 18, height: 56,
-    alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#7C5CFC', shadowOpacity: 0.3,
-    shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 5,
-  },
-  genBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
-
-  section: { marginTop: 20, marginHorizontal: 16 },
-  categoryBadge: {
-    alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 5,
-    borderRadius: 999, marginBottom: 8,
-  },
-  categoryLabel: { fontSize: 12, fontWeight: '700' },
-
-  card: {
-    backgroundColor: C.card, borderRadius: 18,
-    paddingHorizontal: 18, paddingVertical: 4,
-    shadowColor: '#7C5CFC', shadowOpacity: 0.05,
-    shadowRadius: 10, shadowOffset: { width: 0, height: 2 }, elevation: 2,
-  },
-  divider:  { height: 1, backgroundColor: C.line },
-  themeRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 16 },
-  dot:      { width: 7, height: 7, borderRadius: 4, flexShrink: 0 },
-  themeText:{ fontSize: 14, color: C.ink, fontWeight: '500', flex: 1, lineHeight: 22 },
-
-  empty: { alignItems: 'center', marginTop: 60 },
-  emptyText: { fontSize: 14, color: C.muted },
-});
