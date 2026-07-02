@@ -1,22 +1,11 @@
-import { Link } from 'expo-router';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
+import { Alert, FlatList, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import {
-  Alert,
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { dynColor } from '@/constants/categories';
+import { Brand, Radius } from '@/constants/theme';
 
 type Item = { id: string; title: string; done: boolean };
 
@@ -27,8 +16,7 @@ function nextId() {
 }
 
 export default function ExploreScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const router = useRouter();
   const [draft, setDraft] = useState('');
   const [items, setItems] = useState<Item[]>([
     { id: nextId(), title: '牛乳', done: false },
@@ -58,29 +46,33 @@ export default function ExploreScreen() {
   );
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: palette.background }]}>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ThemedView style={styles.header}>
-          <ThemedText type="title">買い物メモ</ThemedText>
-          <ThemedText style={{ opacity: 0.7 }}>デモ用の別アプリ題材です。</ThemedText>
-        </ThemedView>
+    <SafeAreaView style={{ flex: 1, backgroundColor: Brand.bg }}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 24, paddingBottom: 13 }}>
+          <Pressable
+            onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+            hitSlop={10}
+            style={({ pressed }) => ({
+              width: 34,
+              height: 34,
+              borderRadius: 17,
+              backgroundColor: Brand.lav,
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: pressed ? 0.8 : 1,
+            })}>
+            <Ionicons name="chevron-back" size={18} color={Brand.purple} />
+          </Pressable>
+          <View style={{ gap: 2 }}>
+            <Text style={{ fontSize: 26, fontWeight: '800', color: Brand.ink }}>買い物メモ</Text>
+            <Text style={{ fontSize: 13, color: Brand.muted }}>デモ用の別アプリ題材です。</Text>
+          </View>
+        </View>
 
         <FlatList
           data={sorted}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.list}
-          ListHeaderComponent={
-            <View style={[styles.routesCard, { borderColor: palette.icon }]}>
-              <ThemedText style={{ opacity: 0.85 }}>
-                ルート構成のサンプルは「マイページ」タブから開けます。
-              </ThemedText>
-              <Link href="/profile" style={styles.routeLink}>
-                <ThemedText type="link">マイページへ</ThemedText>
-              </Link>
-            </View>
-          }
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16, gap: 8 }}
           renderItem={({ item }) => (
             <Pressable
               onPress={() => toggle(item.id)}
@@ -90,111 +82,91 @@ export default function ExploreScreen() {
                   { text: '削除', style: 'destructive', onPress: () => remove(item.id) },
                 ])
               }
-              style={({ pressed }) => [
-                styles.row,
-                {
-                  borderColor: palette.icon,
-                  opacity: pressed ? 0.85 : 1,
-                  backgroundColor: scheme === 'dark' ? '#1c1c1e' : '#f2f2f7',
-                },
-              ]}>
-              <View style={[styles.dot, item.done && { backgroundColor: palette.tint }]} />
-              <ThemedText
-                style={[styles.rowText, item.done && styles.rowDone]}
+              style={({ pressed }) => ({
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 13,
+                paddingVertical: 16,
+                paddingHorizontal: 16,
+                borderRadius: Radius.md,
+                backgroundColor: Brand.card,
+                borderWidth: 1,
+                borderColor: Brand.line,
+                opacity: pressed ? 0.85 : 1,
+              })}>
+              <View
+                style={{
+                  width: 22,
+                  height: 22,
+                  borderRadius: 11,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: item.done ? Brand.purple : Brand.lav,
+                }}>
+                {item.done ? <Ionicons name="checkmark" size={14} color="#fff" /> : null}
+              </View>
+              <Text
+                style={{
+                  fontSize: 16,
+                  color: Brand.ink,
+                  flex: 1,
+                  textDecorationLine: item.done ? 'line-through' : 'none',
+                  opacity: item.done ? 0.55 : 1,
+                }}
                 numberOfLines={2}>
                 {item.title}
-              </ThemedText>
+              </Text>
             </Pressable>
           )}
           ListEmptyComponent={
-            <ThemedText style={{ paddingVertical: 24, textAlign: 'center', opacity: 0.6 }}>
+            <Text style={{ paddingVertical: 32, textAlign: 'center', color: Brand.muted }}>
               まだありません。下から追加してください。
-            </ThemedText>
+            </Text>
           }
         />
 
-        <View style={[styles.footer, { borderTopColor: palette.icon }]}>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 10,
+            paddingHorizontal: 18,
+            paddingVertical: 13,
+            borderTopWidth: 1,
+            borderTopColor: Brand.line,
+            backgroundColor: Brand.card,
+          }}>
           <TextInput
+            style={{
+              flex: 1,
+              height: 44,
+              paddingHorizontal: 14,
+              borderWidth: 1,
+              borderColor: Brand.line,
+              borderRadius: Radius.sm,
+              backgroundColor: Brand.bg,
+              color: Brand.ink,
+            }}
             value={draft}
             onChangeText={setDraft}
             placeholder="項目を入力"
-            placeholderTextColor={palette.icon}
+            placeholderTextColor={dynColor(Brand.muted)}
             onSubmitEditing={add}
             returnKeyType="done"
-            style={[
-              styles.input,
-              {
-                color: palette.text,
-                borderColor: palette.icon,
-                backgroundColor: scheme === 'dark' ? '#1c1c1e' : '#fff',
-              },
-            ]}
           />
           <Pressable
             onPress={add}
-            style={({ pressed }) => [
-              styles.addBtn,
-              { backgroundColor: palette.tint, opacity: pressed ? 0.88 : 1 },
-            ]}>
-            <Text style={styles.addBtnLabel}>追加</Text>
+            style={({ pressed }) => ({
+              paddingHorizontal: 18,
+              paddingVertical: 13,
+              borderRadius: Radius.sm,
+              backgroundColor: Brand.purple,
+              opacity: pressed ? 0.88 : 1,
+            })}>
+            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>追加</Text>
           </Pressable>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  safe: { flex: 1 },
-  flex: { flex: 1 },
-  header: { paddingHorizontal: 20, paddingBottom: 12, gap: 4 },
-  routesCard: {
-    marginHorizontal: 16,
-    marginBottom: 14,
-    padding: 14,
-    gap: 10,
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  routeLink: { alignSelf: 'flex-start' },
-  list: { paddingHorizontal: 16, paddingBottom: 16, gap: 8 },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 14,
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  dot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#ccc',
-  },
-  rowText: { flex: 1, fontSize: 17 },
-  rowDone: { textDecorationLine: 'line-through', opacity: 0.55 },
-  footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  input: {
-    flex: 1,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: Platform.OS === 'ios' ? 12 : 10,
-    fontSize: 16,
-  },
-  addBtn: {
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    borderRadius: 10,
-  },
-  addBtnLabel: { color: '#fff', fontWeight: '600', fontSize: 16 },
-});

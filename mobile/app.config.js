@@ -1,7 +1,7 @@
 module.exports = {
   expo: {
-    name: "mobile",
-    slug: "mobile",
+    name: "Lumoria",
+    slug: "Lumoria",
     version: "1.0.0",
     orientation: "portrait",
     icon: "./assets/images/icon.png",
@@ -10,6 +10,12 @@ module.exports = {
     newArchEnabled: true,
     ios: {
       supportsTablet: true,
+      bundleIdentifier: "com.asamigentoku.lumoria"
+    },
+    extra: {
+      eas: {
+        projectId: "62a27749-e2eb-4a13-b103-dd3048919d6a"
+      }
     },
     android: {
       adaptiveIcon: {
