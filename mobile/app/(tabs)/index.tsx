@@ -395,23 +395,32 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Brand.bg }}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        {/* ── 固定の戻るバー ── */}
+        <XStack
+          alignItems="center"
+          justifyContent="space-between"
+          backgroundColor={Brand.card}
+          paddingHorizontal={22}
+          paddingVertical="$2.5"
+          borderBottomWidth={1}
+          borderBottomColor={Brand.line}>
+          <ScalePress onPress={() => setShowIntro(true)}>
+            <XStack alignItems="center" gap="$1" paddingVertical="$1" paddingRight="$2.5">
+              <Ionicons name="chevron-back" size={14} color={Brand.purple} />
+              <Text fontWeight="700" fontSize={13.5} color={Brand.purple}>戻る</Text>
+            </XStack>
+          </ScalePress>
+          <Text fontWeight="800" fontSize={12} letterSpacing={1.5} color={Brand.muted}>STEP 1 / 3</Text>
+        </XStack>
+
         <Animated.ScrollView
           entering={SlideInRight.duration(320)}
           contentContainerStyle={{ paddingBottom: 8 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
           {/* ── Header ── */}
           <YStack
-            backgroundColor={Brand.card} paddingTop="$2" paddingHorizontal={22} paddingBottom="$5"
+            backgroundColor={Brand.card} paddingTop="$3" paddingHorizontal={22} paddingBottom="$5"
             borderBottomWidth={1} borderBottomColor={Brand.line}>
-            <XStack alignItems="center" justifyContent="space-between" marginBottom="$3.5">
-              <ScalePress onPress={() => setShowIntro(true)}>
-                <XStack alignItems="center" gap="$1" paddingVertical="$1" paddingRight="$2.5">
-                  <Ionicons name="chevron-back" size={14} color={Brand.purple} />
-                  <Text fontWeight="700" fontSize={13.5} color={Brand.purple}>戻る</Text>
-                </XStack>
-              </ScalePress>
-              <Text fontWeight="800" fontSize={12} letterSpacing={1.5} color={Brand.muted}>STEP 1 / 3</Text>
-            </XStack>
             <Text fontWeight="700" fontSize={28} color={Brand.ink} lineHeight={34} marginBottom="$2">デートのヒアリング</Text>
             <Text fontWeight="500" fontSize={13.5} color={Brand.muted} lineHeight={20}>いくつか教えてね。ふたりにぴったりのプランを提案します。</Text>
             {/* Progress bar */}
@@ -615,12 +624,12 @@ export default function HomeScreen() {
               onPress={handleGenerate} disabled={generatePlan.isPending}
               style={generatePlan.isPending ? { opacity: 0.78 } : undefined}>
               <LinearGradient
-                colors={[Brand.purpleLight, Brand.purple, Brand.purpleDark]}
+                colors={[Brand.purple, Brand.purpleDark]}
                 start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
                 height={56} borderRadius="$7" alignItems="center" justifyContent="center"
                 flexDirection="row" gap="$2"
-                shadowColor={Brand.purple} shadowOpacity={0.32}
-                shadowRadius={18} shadowOffset={{ width: 0, height: 8 }} elevation={6}>
+                shadowColor={Brand.ink} shadowOpacity={0.22}
+                shadowRadius={10} shadowOffset={{ width: 0, height: 5 }} elevation={6}>
                 {generatePlan.isPending
                   ? <ActivityIndicator color="#fff" />
                   : (
@@ -641,48 +650,48 @@ export default function HomeScreen() {
       {/* ── 候補エリア選択モーダル ── */}
       <Modal visible={pickerVisible} animationType="slide" transparent onRequestClose={() => setPickerVisible(false)}>
         <YStack flex={1} backgroundColor="rgba(26,16,51,0.45)" justifyContent="flex-end">
-          <YStack backgroundColor={Brand.card} borderTopLeftRadius={24} borderTopRightRadius={24} paddingHorizontal={22} paddingTop={22} paddingBottom="$9" maxHeight="85%">
-            <Text fontWeight="800" fontSize={18} color={Brand.ink}>立ち寄りたい場所を選ぶ</Text>
-            <Text fontWeight="600" fontSize={12} color={Brand.muted} marginTop="$1">
-              {area ? `${area}のエリアから選ぶか、直接入力できます` : '直接入力できます（都道府県を選ぶとエリア候補が表示されます）'}
-            </Text>
+          <YStack backgroundColor={Brand.card} borderTopLeftRadius={24} borderTopRightRadius={24} paddingHorizontal={22} paddingTop={22} maxHeight="85%">
+            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+              <Text fontWeight="800" fontSize={18} color={Brand.ink}>立ち寄りたい場所を選ぶ</Text>
+              <Text fontWeight="600" fontSize={12} color={Brand.muted} marginTop="$1">
+                {area ? `${area}のエリアから選ぶか、直接入力できます` : '直接入力できます（都道府県を選ぶとエリア候補が表示されます）'}
+              </Text>
 
-            <XStack alignItems="center" gap="$3" backgroundColor={Brand.card} borderRadius="$6" paddingHorizontal="$4" paddingVertical="$3.5" borderWidth={1} borderColor={Brand.line} marginTop="$4">
-              <Ionicons name="pin" size={18} color={Brand.muted} />
-              <Input
-                unstyled
-                flex={1}
-                fontWeight="700"
-                fontSize={15.5}
-                color={Brand.ink}
-                placeholder="例：渋谷スカイ"
-                placeholderTextColor={dynColor(Brand.muted)}
-                value={locationInput}
-                onChangeText={setLocationInput}
-                onSubmitEditing={addLocationToPicker}
-                returnKeyType="done"
-              />
-              <ScalePress onPress={addLocationToPicker} style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, backgroundColor: Brand.purple }}>
-                <RNText style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>追加</RNText>
-              </ScalePress>
-            </XStack>
-
-            {pickerSelection.length > 0 && (
-              <XStack flexWrap="wrap" gap="$2" marginTop="$3">
-                {pickerSelection.map((loc, i) => (
-                  <Animated.View key={`${loc}-${i}`} entering={FadeInDown.duration(200)} exiting={FadeOut.duration(150)}>
-                    <ScalePress onPress={() => removeFromPicker(loc)} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999, backgroundColor: Brand.lav }}>
-                      <Text fontWeight="700" fontSize={13.5} color={Brand.ink2}>{loc}</Text>
-                      <Ionicons name="close" size={13} color={Brand.ink2} />
-                    </ScalePress>
-                  </Animated.View>
-                ))}
+              <XStack alignItems="center" gap="$3" backgroundColor={Brand.card} borderRadius="$6" paddingHorizontal="$4" paddingVertical="$3.5" borderWidth={1} borderColor={Brand.line} marginTop="$4">
+                <Ionicons name="pin" size={18} color={Brand.muted} />
+                <Input
+                  unstyled
+                  flex={1}
+                  fontWeight="700"
+                  fontSize={15.5}
+                  color={Brand.ink}
+                  placeholder="例：渋谷スカイ"
+                  placeholderTextColor={dynColor(Brand.muted)}
+                  value={locationInput}
+                  onChangeText={setLocationInput}
+                  onSubmitEditing={addLocationToPicker}
+                  returnKeyType="done"
+                />
+                <ScalePress onPress={addLocationToPicker} style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, backgroundColor: Brand.purple }}>
+                  <RNText style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>追加</RNText>
+                </ScalePress>
               </XStack>
-            )}
 
-            {area && PREFECTURE_AREAS[area] ? (
-              <ScrollView style={{ maxHeight: 160, marginTop: 16 }}>
-                <XStack flexWrap="wrap" gap="$2" paddingBottom="$1">
+              {pickerSelection.length > 0 && (
+                <XStack flexWrap="wrap" gap="$2" marginTop="$3">
+                  {pickerSelection.map((loc, i) => (
+                    <Animated.View key={`${loc}-${i}`} entering={FadeInDown.duration(200)} exiting={FadeOut.duration(150)}>
+                      <ScalePress onPress={() => removeFromPicker(loc)} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999, backgroundColor: Brand.lav }}>
+                        <Text fontWeight="700" fontSize={13.5} color={Brand.ink2}>{loc}</Text>
+                        <Ionicons name="close" size={13} color={Brand.ink2} />
+                      </ScalePress>
+                    </Animated.View>
+                  ))}
+                </XStack>
+              )}
+
+              {area && PREFECTURE_AREAS[area] ? (
+                <XStack flexWrap="wrap" gap="$2" marginTop={16} paddingBottom="$1">
                   {PREFECTURE_AREAS[area].map(o => (
                     <Pill
                       key={o}
@@ -693,9 +702,9 @@ export default function HomeScreen() {
                     </Pill>
                   ))}
                 </XStack>
-              </ScrollView>
-            ) : null}
-            <XStack gap="$2.5" marginTop="$6">
+              ) : null}
+            </ScrollView>
+            <XStack gap="$2.5" paddingTop="$4" paddingBottom="$9">
               <ScalePress onPress={() => setPickerVisible(false)} style={{ flex: 1, height: 50, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: Brand.lav }}>
                 <Text fontWeight="800" fontSize={15} color={Brand.ink2}>キャンセル</Text>
               </ScalePress>

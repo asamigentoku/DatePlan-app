@@ -121,7 +121,7 @@ export default function TalkScreen() {
 
         {/* ── Generate button ── */}
         <LinearGradient
-          colors={[Brand.purpleLight, Brand.purple, Brand.purpleDark]}
+          colors={[Brand.purple, Brand.purpleDark]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           marginHorizontal="$4"
@@ -133,10 +133,10 @@ export default function TalkScreen() {
           justifyContent="center"
           flexDirection="row"
           gap="$2"
-          shadowColor={Brand.purple}
-          shadowOpacity={0.3}
-          shadowRadius={16}
-          shadowOffset={{ width: 0, height: 6 }}
+          shadowColor={Brand.ink}
+          shadowOpacity={0.22}
+          shadowRadius={10}
+          shadowOffset={{ width: 0, height: 5 }}
           elevation={5}
           onPress={generate}
           pressStyle={{ opacity: 0.85 }}>

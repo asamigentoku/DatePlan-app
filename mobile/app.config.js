@@ -1,7 +1,7 @@
 module.exports = {
   expo: {
-    name: "mobile",
-    slug: "mobile",
+    name: "Lumoria",
+    slug: "Lumoria",
     version: "1.0.0",
     orientation: "portrait",
     icon: "./assets/images/icon.png",

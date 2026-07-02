@@ -17,7 +17,7 @@ import { getCurrentPlan } from '@/lib/plan-store';
 import { savePlan } from '@/lib/saved-plans';
 
 const SAVE_DONE_GRAD = ['#059669', '#10B981'] as const;
-const BTN_GRAD = [Brand.purpleLight, Brand.purple, Brand.purpleDark] as const;
+const BTN_GRAD = [Brand.purple, Brand.purpleDark] as const;
 
 // 地図ピン（PlanRouteMap 系）だけは絵文字のまま軽量に表現する
 const PIN_EMOJI: Record<string, string> = {
@@ -215,33 +215,40 @@ export default function PlanResultScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Brand.bg }} edges={['bottom']}>
+      {/* ── Top bar（固定・スクロールしない） ── */}
+      <XStack
+        alignItems="center"
+        justifyContent="space-between"
+        paddingTop="$14"
+        paddingHorizontal="$5"
+        paddingBottom="$1"
+        backgroundColor="#fff"
+        borderBottomWidth={1}
+        borderBottomColor={Brand.line}>
+        <XStack
+          width={38}
+          height={38}
+          borderRadius={999}
+          backgroundColor={Brand.lav}
+          borderWidth={1}
+          borderColor="rgba(124,92,252,0.2)"
+          alignItems="center"
+          justifyContent="center"
+          shadowColor={Brand.ink}
+          shadowOpacity={0.14}
+          shadowRadius={6}
+          shadowOffset={{ width: 0, height: 3 }}
+          elevation={3}
+          onPress={() => router.back()}
+          pressStyle={{ opacity: 0.8 }}>
+          <Ionicons name="chevron-back" size={20} color={Brand.purple} />
+        </XStack>
+        <XStack backgroundColor={Brand.lav} paddingHorizontal="$3" paddingVertical="$1.5" borderRadius={Radius.pill}>
+          <Text fontWeight="700" fontSize={11.5} color={Brand.purple} letterSpacing={0.5}>できあがり</Text>
+        </XStack>
+      </XStack>
       <ScrollView contentContainerStyle={{ paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
 
-        {/* ── Top bar ── */}
-        <XStack
-          alignItems="center"
-          justifyContent="space-between"
-          paddingTop="$14"
-          paddingHorizontal="$5"
-          paddingBottom="$1"
-          backgroundColor="#fff"
-          borderBottomWidth={1}
-          borderBottomColor={Brand.line}>
-          <XStack
-            width={36}
-            height={36}
-            borderRadius={999}
-            backgroundColor={Brand.lav}
-            alignItems="center"
-            justifyContent="center"
-            onPress={() => router.back()}
-            pressStyle={{ opacity: 0.8 }}>
-            <Ionicons name="chevron-back" size={20} color={Brand.purple} />
-          </XStack>
-          <XStack backgroundColor={Brand.lav} paddingHorizontal="$3" paddingVertical="$1.5" borderRadius={Radius.pill}>
-            <Text fontWeight="700" fontSize={11.5} color={Brand.purple} letterSpacing={0.5}>できあがり</Text>
-          </XStack>
-        </XStack>
         <YStack backgroundColor="#fff" paddingHorizontal="$5" paddingTop="$2.5" paddingBottom="$4.5">
           <Text fontSize={26} fontWeight="700" color={Brand.ink} lineHeight={32} marginBottom="$2.5">
             {api.theme ?? 'デートプラン'}
