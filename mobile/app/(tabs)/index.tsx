@@ -1,9 +1,11 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useMutation } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useEffect, useState } from 'react';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ActivityIndicator,
   Alert,
@@ -12,42 +14,45 @@ import {
   Platform,
   Pressable,
   ScrollView,
-  StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
+import Animated, {
+  FadeInDown,
+  FadeInUp,
+  FadeOut,
+  SlideInRight,
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 
+import { CategoryIcon } from '@/components/ui/category-icon';
+import { MOOD_CATEGORIES, dynColor, type CategoryIconSpec } from '@/constants/categories';
+import { Brand } from '@/constants/theme';
 import type { DtoCreatePlanRequest } from '@/lib/api/petstore';
-import { postPlans } from '@/lib/api/petstore';
+import { api } from '@/lib/api/client';
 import { setCurrentPlan } from '@/lib/plan-store';
 import { PREFECTURE_AREAS, REGIONS, REGION_NAMES } from '@/lib/prefecture-areas';
 
-// ─── Design tokens ─────────────────────────────────────────────────────────
-const C = {
-  bg:     '#F7F5FF',
-  card:   '#FFFFFF',
-  lav:    '#EEE9FF',
-  purple: '#7C5CFC',
-  ink:    '#1A1033',
-  ink2:   '#5B5280',
-  muted:  '#9B91C8',
-  line:   '#EDE9FF',
-};
+// react-native-reanimated の Animated.createAnimatedComponent は
+// 一部のコンポーネントだと style の差分適用が不安定なため、
+// プログレスバーだけ expo-linear-gradient を直接アニメーションさせる。
+const AnimatedGradient = Animated.createAnimatedComponent(LinearGradient);
+
+// ─── Intro content ─────────────────────────────────────────────────────────
+const INTRO_FEATURES: { icon: CategoryIconSpec; title: string; desc: string }[] = [
+  { icon: { lib: 'ion', name: 'location' }, title: 'エリアと気分を伝える', desc: 'いくつか質問に答えるだけでOK' },
+  { icon: { lib: 'mc', name: 'robot-excited' }, title: 'AIがプランを自動作成', desc: 'ふたりにぴったりの1日を提案' },
+  { icon: { lib: 'ion', name: 'heart' }, title: 'そのまま保存して当日に', desc: 'お気に入りのプランをいつでも見返せる' },
+];
 
 // ─── Options ───────────────────────────────────────────────────────────────
 const DATE_OPTS = ['今週末', '来週末', '今夜', '＋ 日付を選ぶ'];
 const MOOD_OPTS = ['まったり', 'アクティブ', 'おしゃれ', '食べ歩き', '記念日', 'はじめて'];
-const CATEGORY_OPTS = [
-  { key: 'cafe',    label: 'カフェ',      emoji: '☕', color: '#D97706' },
-  { key: 'food',    label: 'グルメ',      emoji: '🍽️', color: '#DC2626' },
-  { key: 'nature',  label: '自然・公園',  emoji: '🌳', color: '#059669' },
-  { key: 'art',     label: '美術館',      emoji: '🎨', color: '#0284C7' },
-  { key: 'movie',   label: '映画・エンタ', emoji: '🎬', color: '#7C5CFC' },
-  { key: 'shop',    label: 'ショッピング', emoji: '🛍️', color: '#0D9488' },
-  { key: 'shrine',  label: '神社・寺',    emoji: '⛩️', color: '#EA580C' },
-  { key: 'night',   label: '夜景',        emoji: '🌙', color: '#6366F1' },
-];
 const BUDGET_OPTS = ['〜5,000', '〜10,000', '〜20,000', '自由'];
 const SPAN_OPTS   = ['半日', '1日', '夜だけ'];
 const TIME_SLOT_OPTS = ['朝', '昼', '夜'];
@@ -55,54 +60,191 @@ const RELATIONSHIP_OPTS = ['カップル', '夫婦', '友達', '家族'];
 const CAR_OPTS = ['車なし', '車あり'];
 
 // ─── UI components ─────────────────────────────────────────────────────────
+
+// タップ時に軽く縮んでバネで戻る、操作フィードバック用の共通ラッパー
+function ScalePress({ onPress, disabled, style, children, activeScale = 0.96 }: {
+  onPress?: () => void; disabled?: boolean; style?: any; children: React.ReactNode; activeScale?: number;
+}) {
+  const scale = useSharedValue(1);
+  const rStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  return (
+    <Animated.View style={rStyle}>
+      <Pressable
+        disabled={disabled}
+        onPressIn={() => { scale.value = withTiming(activeScale, { duration: 90 }); }}
+        onPressOut={() => { scale.value = withSpring(1, { damping: 14, stiffness: 260 }); }}
+        onPress={onPress}
+        style={style}>
+        {children}
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+// ─── Intro screen ───────────────────────────────────────────────────────────
+function IntroScreen({ onStart }: { onStart: () => void }) {
+  return (
+    <Animated.View style={{ flex: 1 }} exiting={FadeOut.duration(220)}>
+      <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
+        <View style={{ flex: 1, paddingHorizontal: 32, paddingTop: 13, justifyContent: 'space-between', overflow: 'hidden' }}>
+          <Image
+            source={require('@/assets/images/date/curple.jpg')}
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+            contentFit="cover"
+          />
+          <LinearGradient
+            colors={['rgba(41,20,94,0.55)', 'rgba(33,16,82,0.72)', 'rgba(15,8,48,0.9)']}
+            start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+          />
+          <View style={{ marginTop: 39 }}>
+            <Animated.View entering={FadeInDown.delay(60).springify()}>
+              <View
+                style={{
+                  alignSelf: 'flex-start',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 7,
+                  backgroundColor: 'rgba(255,255,255,0.18)',
+                  paddingHorizontal: 16, paddingVertical: 7, borderRadius: 999, marginBottom: 22,
+                }}>
+                <Ionicons name="heart" size={13} color="#fff" />
+                <Text style={{ fontWeight: '700', fontSize: 12.5, color: '#fff' }}>AI デートプランナー</Text>
+              </View>
+            </Animated.View>
+            <Animated.View entering={FadeInDown.delay(140).springify()}>
+              <Text style={{ fontWeight: '800', fontSize: 32, lineHeight: 40, color: '#fff', marginBottom: 16 }}>
+                ふたりだけの{'\n'}特別な一日を、{'\n'}AIと一緒に。
+              </Text>
+            </Animated.View>
+            <Animated.View entering={FadeInDown.delay(220).springify()}>
+              <Text style={{ fontWeight: '500', fontSize: 14.5, lineHeight: 22, color: 'rgba(255,255,255,0.86)' }}>
+                気分やエリアを教えるだけで、{'\n'}最適なデートプランを自動で提案します。
+              </Text>
+            </Animated.View>
+          </View>
+
+          <View style={{ gap: 21 }}>
+            {INTRO_FEATURES.map((f, i) => (
+              <Animated.View key={f.title} entering={FadeInUp.delay(320 + i * 90).springify()}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+                  <View
+                    style={{
+                      width: 44, height: 44, borderRadius: 10,
+                      backgroundColor: 'rgba(255,255,255,0.16)',
+                      alignItems: 'center', justifyContent: 'center',
+                    }}>
+                    <CategoryIcon icon={f.icon} size={20} color="#fff" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontWeight: '700', fontSize: 14.5, color: '#fff', marginBottom: 2 }}>{f.title}</Text>
+                    <Text style={{ fontWeight: '500', fontSize: 12.5, color: 'rgba(255,255,255,0.78)' }}>{f.desc}</Text>
+                  </View>
+                </View>
+              </Animated.View>
+            ))}
+          </View>
+
+          <Animated.View entering={FadeInUp.delay(620).springify()} style={{ marginBottom: 28 }}>
+            <ScalePress
+              onPress={onStart}
+              style={{
+                height: 58, borderRadius: 18, alignItems: 'center', justifyContent: 'center',
+                flexDirection: 'row', gap: 8,
+                backgroundColor: '#fff',
+                shadowColor: Brand.ink, shadowOpacity: 0.22,
+                shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 6,
+              }}>
+              <Text style={{ color: Brand.purple, fontSize: 16.5, fontWeight: '800' }}>プランを作成する</Text>
+              <Ionicons name="arrow-forward" size={18} color={Brand.purple} />
+            </ScalePress>
+          </Animated.View>
+        </View>
+      </SafeAreaView>
+    </Animated.View>
+  );
+}
+
 function SectionLabel({ children, opt }: { children: string; opt?: string }) {
   return (
-    <View style={styles.labelRow}>
-      <Text style={styles.labelText}>{children}</Text>
-      {opt ? <Text style={styles.labelOpt}>{opt}</Text> : null}
+    <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 7, marginBottom: 13 }}>
+      <Text style={{ fontWeight: '700', fontSize: 16.5, color: Brand.ink }}>{children}</Text>
+      {opt ? <Text style={{ fontWeight: '600', fontSize: 11, color: Brand.muted }}>{opt}</Text> : null}
     </View>
   );
 }
 
-function Pill({ on, onPress, children, color = C.purple }: {
+// 選択がONになった瞬間にポンと弾む共通フック
+function useSelectBounce(on: boolean) {
+  const bounce = useSharedValue(1);
+  useEffect(() => {
+    if (on) bounce.value = withSequence(withTiming(1.14, { duration: 100 }), withSpring(1, { damping: 9, stiffness: 220 }));
+  }, [on, bounce]);
+  return useAnimatedStyle(() => ({ transform: [{ scale: bounce.value }] }));
+}
+
+function Pill({ on, onPress, children, color = Brand.purple }: {
   on: boolean; onPress: () => void; children: string; color?: string;
 }) {
+  const bounceStyle = useSelectBounce(on);
   return (
-    <Pressable
-      onPress={onPress}
-      style={[
-        styles.pill,
-        on && { backgroundColor: color, borderColor: color,
-          shadowColor: color, shadowOpacity: 0.36,
-          shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 5 },
-      ]}>
-      <Text style={[styles.pillText, on && { color: '#fff' }]}>{children}</Text>
-    </Pressable>
+    <Animated.View style={bounceStyle}>
+      <ScalePress
+        onPress={onPress}
+        style={{
+          paddingHorizontal: 16, paddingVertical: 10,
+          borderRadius: 999, borderWidth: 1.5,
+          backgroundColor: on ? color : Brand.lav, borderColor: on ? color : Brand.lav,
+          ...(on ? { shadowColor: color, shadowOpacity: 0.36, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 5 } : null),
+        }}>
+        <Text style={{ fontWeight: '700', fontSize: 14, color: on ? '#fff' : Brand.ink2 }}>{children}</Text>
+      </ScalePress>
+    </Animated.View>
   );
 }
 
-function CatPill({ opt, on, onPress }: { opt: typeof CATEGORY_OPTS[0]; on: boolean; onPress: () => void }) {
+function CatPill({ opt, on, onPress }: { opt: typeof MOOD_CATEGORIES[number]; on: boolean; onPress: () => void }) {
+  const bounceStyle = useSelectBounce(on);
   return (
-    <Pressable
-      onPress={onPress}
-      style={[
-        styles.catPill,
-        { backgroundColor: on ? opt.color : `${opt.color}18`, borderColor: on ? opt.color : 'transparent' },
-        on && { shadowColor: opt.color, shadowOpacity: 0.36, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 5 },
-      ]}>
-      <Text style={styles.catEmoji}>{opt.emoji}</Text>
-      <Text style={[styles.catText, { color: on ? '#fff' : opt.color }]}>{opt.label}</Text>
-    </Pressable>
+    <Animated.View style={bounceStyle}>
+      <ScalePress
+        onPress={onPress}
+        style={{
+          flexDirection: 'row', alignItems: 'center', gap: 6,
+          paddingHorizontal: 13, paddingVertical: 9,
+          borderRadius: 999, borderWidth: 1.5,
+          backgroundColor: on ? opt.color : `${opt.color}18`,
+          borderColor: on ? opt.color : 'transparent',
+          ...(on ? { shadowColor: opt.color, shadowOpacity: 0.36, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 5 } : null),
+        }}>
+        <CategoryIcon icon={opt.icon} size={15} color={on ? '#fff' : opt.color} />
+        <Text style={{ fontWeight: '700', fontSize: 13.5, color: on ? '#fff' : opt.color }}>{opt.label}</Text>
+      </ScalePress>
+    </Animated.View>
+  );
+}
+
+function SegItem({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) {
+  const bounceStyle = useSelectBounce(on);
+  return (
+    <Animated.View style={[{ flex: 1 }, bounceStyle]}>
+      <ScalePress
+        onPress={onPress}
+        style={{
+          borderRadius: 10, paddingVertical: 11, alignItems: 'center',
+          ...(on ? { backgroundColor: Brand.purple, shadowColor: Brand.purple, shadowOpacity: 0.36, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 4 } : null),
+        }}>
+        <Text style={{ fontWeight: '700', fontSize: 13.5, color: on ? '#fff' : Brand.ink2 }}>{label}</Text>
+      </ScalePress>
+    </Animated.View>
   );
 }
 
 function Seg({ value, set, opts }: { value: string; set: (v: string) => void; opts: string[] }) {
   return (
-    <View style={styles.seg}>
+    <View style={{ flexDirection: 'row', backgroundColor: Brand.lav, borderRadius: 10, padding: 2, gap: 2 }}>
       {opts.map(o => (
-        <Pressable key={o} onPress={() => set(o)} style={[styles.segItem, value === o && styles.segItemOn]}>
-          <Text style={[styles.segText, value === o && styles.segTextOn]}>{o}</Text>
-        </Pressable>
+        <SegItem key={o} label={o} on={value === o} onPress={() => set(o)} />
       ))}
     </View>
   );
@@ -129,10 +271,34 @@ function parseBudget(b: string): number | undefined {
   return undefined;
 }
 
+// 入力欄の行（アイコン + テキスト/入力）を共通化
+function InputRow({ icon, children, style, onPress }: {
+  icon: keyof typeof Ionicons.glyphMap; children: React.ReactNode; style?: any; onPress?: () => void;
+}) {
+  const row = (
+    <View
+      style={[
+        {
+          flexDirection: 'row', alignItems: 'center', gap: 13,
+          backgroundColor: Brand.card, borderRadius: 16, paddingHorizontal: 18, paddingVertical: 16,
+          borderWidth: 1, borderColor: Brand.line,
+        },
+        style,
+      ]}>
+      <Ionicons name={icon} size={18} color={Brand.muted} />
+      {children}
+    </View>
+  );
+  if (!onPress) return row;
+  return <ScalePress onPress={onPress}>{row}</ScalePress>;
+}
+
 // ─── Screen ────────────────────────────────────────────────────────────────
 export default function HomeScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
+  const [showIntro, setShowIntro] = useState(true);
   const [selectedDate, setSelectedDate] = useState('今週末');
   const [pickedDate, setPickedDate]     = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -148,13 +314,11 @@ export default function HomeScreen() {
   const [locationInput, setLocationInput] = useState('');
   const [areaPickerVisible, setAreaPickerVisible] = useState(false);
   const [pickerRegion, setPickerRegion]   = useState<string | null>(null);
-  const [pickerVisible, setPickerVisible] = useState(false);
-  const [pickerSelection, setPickerSelection] = useState<string[]>([]);
   const [memo, setMemo]                 = useState('');
 
   const generatePlan = useMutation({
     mutationFn: (request: DtoCreatePlanRequest) =>
-      postPlans(request),
+      api.postPlans(request),
   });
 
   const toggle = <T,>(arr: T[], set: (v: T[]) => void, v: T) =>
@@ -166,22 +330,12 @@ export default function HomeScreen() {
   const removeLocation = (i: number) =>
     setLocations(prev => prev.filter((_, idx) => idx !== i));
 
-  const openPicker = () => {
-    setPickerSelection(locations);
-    setPickerVisible(true);
-  };
-  const confirmPicker = () => {
-    setLocations(pickerSelection);
-    setPickerVisible(false);
-  };
-  const addLocationToPicker = () => {
+  const addLocation = () => {
     const v = locationInput.trim();
     if (!v) return;
-    setPickerSelection(prev => prev.includes(v) ? prev : [...prev, v]);
+    setLocations(prev => prev.includes(v) ? prev : [...prev, v]);
     setLocationInput('');
   };
-  const removeFromPicker = (v: string) =>
-    setPickerSelection(prev => prev.filter(x => x !== v));
 
   const regionOfArea = (a: string) =>
     REGION_NAMES.find(r => REGIONS[r].includes(a)) ?? null;
@@ -201,7 +355,7 @@ export default function HomeScreen() {
       const dateStr = selectedDate === '＋ 日付を選ぶ'
         ? (pickedDate ? formatDate(pickedDate) : undefined)
         : selectedDate;
-      const catLabels = cats.map(k => CATEGORY_OPTS.find(o => o.key === k)?.label ?? '').filter(Boolean);
+      const catLabels = cats.map(k => MOOD_CATEGORIES.find(o => o.key === k)?.label ?? '').filter(Boolean);
       const theme = [...moods, ...catLabels, span].filter(Boolean).join('、') || undefined;
 
       const res = await generatePlan.mutateAsync({
@@ -219,50 +373,86 @@ export default function HomeScreen() {
       const plan = (res.data as unknown as { data: typeof res.data }).data;
       console.log('受け取ったプラン:', JSON.stringify(plan, null, 2));
       setCurrentPlan(plan, { area: trimmedArea, budget: `〜¥${budget}` });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      router.push('/plan-result' as any);
+      router.push('/plan-result');
     } catch (e) {
       console.log('プラン生成エラー:', e);
       Alert.alert('エラー', 'プランの生成に失敗しました。\nもう一度お試しください。');
     }
   };
 
+  const progressValue = useSharedValue(progress);
+  useEffect(() => {
+    progressValue.value = withTiming(progress, { duration: 450 });
+  }, [progress, progressValue]);
+  const progressStyle = useAnimatedStyle(() => ({ width: `${progressValue.value}%` }));
+
+  if (showIntro) {
+    return <IntroScreen onStart={() => setShowIntro(false)} />;
+  }
+
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: Brand.bg }} edges={['left', 'right', 'bottom']}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        {/* ── 固定の戻るバー（上端の隙間をなくすため safe area 分を自前で確保） ── */}
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            backgroundColor: Brand.card,
+            paddingHorizontal: 22,
+            paddingTop: insets.top + 10,
+            paddingBottom: 10,
+            borderBottomWidth: 1,
+            borderBottomColor: Brand.line,
+            zIndex: 10,
+            elevation: 10,
+          }}>
+          <ScalePress onPress={() => setShowIntro(true)}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2, paddingVertical: 2, paddingRight: 10 }}>
+              <Ionicons name="chevron-back" size={14} color={Brand.purple} />
+              <Text style={{ fontWeight: '700', fontSize: 13.5, color: Brand.purple }}>戻る</Text>
+            </View>
+          </ScalePress>
+          <Text style={{ fontWeight: '800', fontSize: 12, letterSpacing: 1.5, color: Brand.muted }}>STEP 1 / 3</Text>
+        </View>
+
+        <Animated.ScrollView
+          entering={SlideInRight.duration(320)}
+          style={{ flex: 1, zIndex: 0 }}
+          contentContainerStyle={{ paddingBottom: 8 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
           {/* ── Header ── */}
-          <View style={styles.header}>
-            <View style={styles.headerTop}>
-              <Text style={styles.stepText}>STEP 1 / 3</Text>
-            </View>
-            <Text style={styles.title}>デートのヒアリング</Text>
-            <Text style={styles.subtitle}>いくつか教えてね。ふたりにぴったりのプランを提案します。</Text>
+          <View
+            style={{
+              backgroundColor: Brand.card, paddingTop: 13, paddingHorizontal: 22, paddingBottom: 24,
+              borderBottomWidth: 1, borderBottomColor: Brand.line,
+            }}>
+            <Text style={{ fontWeight: '700', fontSize: 28, color: Brand.ink, lineHeight: 34, marginBottom: 7 }}>デートのヒアリング</Text>
+            <Text style={{ fontWeight: '500', fontSize: 13.5, color: Brand.muted, lineHeight: 20 }}>いくつか教えてね。ふたりにぴったりのプランを提案します。</Text>
             {/* Progress bar */}
-            <View style={styles.progressBg}>
-              <LinearGradient
+            <View style={{ height: 8, borderRadius: 99, backgroundColor: Brand.lav, marginTop: 16, overflow: 'hidden' }}>
+              <AnimatedGradient
                 colors={['#9C84FF', '#7C5CFC']}
                 start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                style={[styles.progressBar, { width: `${progress}%` as unknown as number }]}
+                style={[{ height: '100%', borderRadius: 99 }, progressStyle]}
               />
             </View>
           </View>
 
-          <View style={styles.form}>
+          <View style={{ paddingHorizontal: 22 }}>
 
             {/* ── いつ行く？ ── */}
-            <View style={styles.block}>
+            <View style={{ marginTop: 26 }}>
               <SectionLabel>いつ行く？</SectionLabel>
-              <View style={styles.pillRow}>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7 }}>
                 {DATE_OPTS.map(o => (
                   <Pill key={o} on={selectedDate === o} onPress={() => setSelectedDate(o)}>{o}</Pill>
                 ))}
               </View>
               {selectedDate === '＋ 日付を選ぶ' ? (
                 Platform.OS === 'web' ? (
-                  <View style={[styles.inputRow, { marginTop: 10 }]}>
-                    <Text style={styles.inputIcon}>📅</Text>
+                  <InputRow icon="calendar" style={{ marginTop: 10 }}>
                     {React.createElement('input', {
                       type: 'date',
                       value: pickedDate ? formatDate(pickedDate) : '',
@@ -279,20 +469,19 @@ export default function HomeScreen() {
                         fontFamily: 'inherit',
                         fontSize: 15.5,
                         fontWeight: 700,
-                        color: C.ink,
+                        color: Brand.ink,
                       },
                     })}
-                  </View>
+                  </InputRow>
                 ) : (
                   <>
-                    <Pressable onPress={() => setShowDatePicker(true)} style={[styles.inputRow, { marginTop: 10 }]}>
-                      <Text style={styles.inputIcon}>📅</Text>
-                      <Text style={[styles.inputInner, !pickedDate && { color: C.muted }]}>
+                    <InputRow icon="calendar" style={{ marginTop: 10 }} onPress={() => setShowDatePicker(true)}>
+                      <Text style={{ flex: 1, fontWeight: '700', fontSize: 15.5, color: pickedDate ? Brand.ink : Brand.muted }}>
                         {pickedDate ? formatDateLabel(pickedDate) : '日付を選択'}
                       </Text>
-                    </Pressable>
+                    </InputRow>
                     {showDatePicker ? (
-                      <View style={{ marginTop: 10 }}>
+                      <Animated.View entering={FadeInDown.duration(200)} style={{ marginTop: 10 }}>
                         <DateTimePicker
                           value={pickedDate ?? new Date()}
                           mode="date"
@@ -304,11 +493,11 @@ export default function HomeScreen() {
                           }}
                         />
                         {Platform.OS === 'ios' ? (
-                          <Pressable onPress={() => setShowDatePicker(false)} style={[styles.addBtn, { alignSelf: 'flex-end', marginTop: 10 }]}>
-                            <Text style={styles.addBtnText}>完了</Text>
-                          </Pressable>
+                          <ScalePress onPress={() => setShowDatePicker(false)} style={{ alignSelf: 'flex-end', marginTop: 10, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, backgroundColor: Brand.purple }}>
+                            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>完了</Text>
+                          </ScalePress>
                         ) : null}
-                      </View>
+                      </Animated.View>
                     ) : null}
                   </>
                 )
@@ -316,9 +505,9 @@ export default function HomeScreen() {
             </View>
 
             {/* ── 時間帯 ── */}
-            <View style={styles.block}>
+            <View style={{ marginTop: 26 }}>
               <SectionLabel opt="任意">時間帯</SectionLabel>
-              <View style={styles.pillRow}>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7 }}>
                 {TIME_SLOT_OPTS.map(o => (
                   <Pill key={o} on={timeSlot === o} onPress={() => toggleSeg(timeSlot, setTimeSlot, o)}>{o}</Pill>
                 ))}
@@ -326,40 +515,66 @@ export default function HomeScreen() {
             </View>
 
             {/* ── どのあたり？ ── */}
-            <View style={styles.block}>
+            <View style={{ marginTop: 26 }}>
               <SectionLabel>どのあたり？</SectionLabel>
-              <Pressable onPress={openAreaPicker} style={styles.inputRow}>
-                <Text style={styles.inputIcon}>📍</Text>
-                <Text style={[styles.inputInner, !area && { color: C.muted }]}>
+              <InputRow icon="location" onPress={openAreaPicker}>
+                <Text style={{ flex: 1, fontWeight: '700', fontSize: 15.5, color: area ? Brand.ink : Brand.muted }}>
                   {area || '都道府県を選択'}
                 </Text>
-              </Pressable>
+              </InputRow>
             </View>
 
             {/* ── 立ち寄りたい場所 ── */}
-            <View style={styles.block}>
+            <View style={{ marginTop: 26 }}>
               <SectionLabel opt="任意・複数選択可">立ち寄りたい場所</SectionLabel>
-              <Pressable onPress={openPicker} style={styles.inputRow}>
-                <Text style={styles.inputIcon}>📌</Text>
-                <Text style={[styles.inputInner, locations.length === 0 && { color: C.muted }]}>
-                  {locations.length > 0 ? locations.join('、') : '場所を選ぶ・入力する'}
-                </Text>
-              </Pressable>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 13, backgroundColor: Brand.card, borderRadius: 16, paddingHorizontal: 18, paddingVertical: 16, borderWidth: 1, borderColor: Brand.line }}>
+                <Ionicons name="pin" size={18} color={Brand.muted} />
+                <TextInput
+                  style={{ flex: 1, fontWeight: '700', fontSize: 15.5, color: Brand.ink }}
+                  placeholder="例：渋谷スカイ"
+                  placeholderTextColor={dynColor(Brand.muted)}
+                  value={locationInput}
+                  onChangeText={setLocationInput}
+                  onSubmitEditing={addLocation}
+                  returnKeyType="done"
+                />
+                <ScalePress onPress={addLocation} style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, backgroundColor: Brand.purple }}>
+                  <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>追加</Text>
+                </ScalePress>
+              </View>
+
               {locations.length > 0 && (
-                <View style={[styles.pillRow, { marginTop: 10 }]}>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 10 }}>
                   {locations.map((loc, i) => (
-                    <Pressable key={`${loc}-${i}`} onPress={() => removeLocation(i)} style={styles.chip}>
-                      <Text style={styles.chipText}>{loc}　×</Text>
-                    </Pressable>
+                    <Animated.View key={`${loc}-${i}`} entering={FadeInDown.duration(220)} exiting={FadeOut.duration(150)}>
+                      <ScalePress onPress={() => removeLocation(i)} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999, backgroundColor: Brand.lav }}>
+                        <Text style={{ fontWeight: '700', fontSize: 13.5, color: Brand.ink2 }}>{loc}</Text>
+                        <Ionicons name="close" size={13} color={Brand.ink2} />
+                      </ScalePress>
+                    </Animated.View>
                   ))}
                 </View>
               )}
+
+              {area && PREFECTURE_AREAS[area] ? (
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 10 }}>
+                  {PREFECTURE_AREAS[area].map(o => (
+                    <Pill
+                      key={o}
+                      on={locations.includes(o)}
+                      onPress={() => toggle(locations, setLocations, o)}
+                    >
+                      {o}
+                    </Pill>
+                  ))}
+                </View>
+              ) : null}
             </View>
 
             {/* ── どんな気分？ ── */}
-            <View style={styles.block}>
+            <View style={{ marginTop: 26 }}>
               <SectionLabel opt="複数えらべます">どんな気分？</SectionLabel>
-              <View style={styles.pillRow}>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7 }}>
                 {MOOD_OPTS.map(o => (
                   <Pill key={o} on={moods.includes(o)} onPress={() => toggle(moods, setMoods, o)}>{o}</Pill>
                 ))}
@@ -367,31 +582,31 @@ export default function HomeScreen() {
             </View>
 
             {/* ── やりたいことは？ ── */}
-            <View style={styles.block}>
+            <View style={{ marginTop: 26 }}>
               <SectionLabel opt="複数えらべます">やりたいことは？</SectionLabel>
-              <View style={styles.pillRow}>
-                {CATEGORY_OPTS.map(o => (
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7 }}>
+                {MOOD_CATEGORIES.map(o => (
                   <CatPill key={o.key} opt={o} on={cats.includes(o.key)} onPress={() => toggle(cats, setCats, o.key)} />
                 ))}
               </View>
             </View>
 
             {/* ── 予算のめやす ── */}
-            <View style={styles.block}>
+            <View style={{ marginTop: 26 }}>
               <SectionLabel>予算のめやす</SectionLabel>
               <Seg value={budget} set={setBudget} opts={BUDGET_OPTS} />
             </View>
 
             {/* ── 過ごす時間 ── */}
-            <View style={styles.block}>
+            <View style={{ marginTop: 26 }}>
               <SectionLabel>過ごす時間</SectionLabel>
               <Seg value={span} set={setSpan} opts={SPAN_OPTS} />
             </View>
 
             {/* ── 関係性 ── */}
-            <View style={styles.block}>
+            <View style={{ marginTop: 26 }}>
               <SectionLabel opt="任意">ふたりの関係</SectionLabel>
-              <View style={styles.pillRow}>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7 }}>
                 {RELATIONSHIP_OPTS.map(o => (
                   <Pill key={o} on={relationship === o} onPress={() => toggleSeg(relationship, setRelationship, o)}>{o}</Pill>
                 ))}
@@ -399,7 +614,7 @@ export default function HomeScreen() {
             </View>
 
             {/* ── 車の利用 ── */}
-            <View style={styles.block}>
+            <View style={{ marginTop: 26 }}>
               <SectionLabel>移動手段</SectionLabel>
               <Seg
                 value={hasCar ? '車あり' : '車なし'}
@@ -409,14 +624,22 @@ export default function HomeScreen() {
             </View>
 
             {/* ── ひとことメモ ── */}
-            <View style={styles.block}>
+            <View style={{ marginTop: 26 }}>
               <SectionLabel opt="任意">ひとことメモ</SectionLabel>
-              <View style={[styles.inputRow, { alignItems: 'flex-start', paddingTop: 14 }]}>
-                <Text style={[styles.inputIcon, { marginTop: 1 }]}>✍️</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 13, backgroundColor: Brand.card, borderRadius: 16, paddingHorizontal: 18, paddingTop: 16, paddingBottom: 16, borderWidth: 1, borderColor: Brand.line }}>
+                <Ionicons name="create-outline" size={18} color={Brand.muted} style={{ marginTop: 1 }} />
                 <TextInput
-                  style={[styles.inputInner, styles.textArea]}
+                  style={{
+                    flex: 1,
+                    fontWeight: '700',
+                    fontSize: 15.5,
+                    color: Brand.ink,
+                    minHeight: 68,
+                    lineHeight: 24,
+                  }}
+                  textAlignVertical="top"
                   placeholder="行きたいお店、サプライズ、気になることなど…"
-                  placeholderTextColor={C.muted}
+                  placeholderTextColor={dynColor(Brand.muted)}
                   value={memo}
                   onChangeText={setMemo}
                   multiline
@@ -429,132 +652,81 @@ export default function HomeScreen() {
           </View>
 
           {/* ── CTA ── */}
-          <View style={styles.ctaWrap}>
-            <Pressable
+          <View style={{ paddingHorizontal: 24, marginTop: 13 }}>
+            <ScalePress
               onPress={handleGenerate} disabled={generatePlan.isPending}
-              style={({ pressed }) => [(pressed || generatePlan.isPending) && { opacity: 0.78 }]}>
+              style={generatePlan.isPending ? { opacity: 0.78 } : undefined}>
               <LinearGradient
-                colors={['#9C84FF', '#7C5CFC', '#5B3FE0']}
+                colors={[Brand.purple, Brand.purpleDark]}
                 start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                style={styles.cta}>
+                style={{
+                  height: 56, borderRadius: 19, alignItems: 'center', justifyContent: 'center',
+                  flexDirection: 'row', gap: 7,
+                  shadowColor: Brand.ink, shadowOpacity: 0.22,
+                  shadowRadius: 10, shadowOffset: { width: 0, height: 5 }, elevation: 6,
+                }}>
                 {generatePlan.isPending
                   ? <ActivityIndicator color="#fff" />
-                  : <Text style={styles.ctaText}>プランを提案してもらう  →</Text>
+                  : (
+                    <>
+                      <Text style={{ color: '#fff', fontSize: 16.5, fontWeight: '800' }}>プランを提案してもらう</Text>
+                      <Ionicons name="arrow-forward" size={18} color="#fff" />
+                    </>
+                  )
                 }
               </LinearGradient>
-            </Pressable>
+            </ScalePress>
           </View>
 
           <View style={{ height: 32 }} />
-        </ScrollView>
+        </Animated.ScrollView>
       </KeyboardAvoidingView>
-
-      {/* ── 候補エリア選択モーダル ── */}
-      <Modal visible={pickerVisible} animationType="slide" transparent onRequestClose={() => setPickerVisible(false)}>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>立ち寄りたい場所を選ぶ</Text>
-            <Text style={styles.modalSubtitle}>
-              {area ? `${area}のエリアから選ぶか、直接入力できます` : '直接入力できます（都道府県を選ぶとエリア候補が表示されます）'}
-            </Text>
-
-            <View style={[styles.inputRow, { marginTop: 16 }]}>
-              <Text style={styles.inputIcon}>📌</Text>
-              <TextInput
-                style={styles.inputInner}
-                placeholder="例：渋谷スカイ"
-                placeholderTextColor={C.muted}
-                value={locationInput}
-                onChangeText={setLocationInput}
-                onSubmitEditing={addLocationToPicker}
-                returnKeyType="done"
-              />
-              <Pressable onPress={addLocationToPicker} style={styles.addBtn}>
-                <Text style={styles.addBtnText}>追加</Text>
-              </Pressable>
-            </View>
-
-            {pickerSelection.length > 0 && (
-              <View style={[styles.pillRow, { marginTop: 12 }]}>
-                {pickerSelection.map((loc, i) => (
-                  <Pressable key={`${loc}-${i}`} onPress={() => removeFromPicker(loc)} style={styles.chip}>
-                    <Text style={styles.chipText}>{loc}　×</Text>
-                  </Pressable>
-                ))}
-              </View>
-            )}
-
-            {area && PREFECTURE_AREAS[area] ? (
-              <ScrollView style={[styles.modalAreaScroll, { marginTop: 16 }]}>
-                <View style={[styles.pillRow, { paddingBottom: 4 }]}>
-                  {PREFECTURE_AREAS[area].map(o => (
-                    <Pill
-                      key={o}
-                      on={pickerSelection.includes(o)}
-                      onPress={() => toggle(pickerSelection, setPickerSelection, o)}
-                    >
-                      {o}
-                    </Pill>
-                  ))}
-                </View>
-              </ScrollView>
-            ) : null}
-            <View style={styles.modalActions}>
-              <Pressable onPress={() => setPickerVisible(false)} style={[styles.modalBtn, styles.modalBtnGhost]}>
-                <Text style={[styles.modalBtnText, { color: C.ink2 }]}>キャンセル</Text>
-              </Pressable>
-              <Pressable onPress={confirmPicker} style={[styles.modalBtn, styles.modalBtnPrimary]}>
-                <Text style={[styles.modalBtnText, { color: '#fff' }]}>決定</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
 
       {/* ── 都道府県選択モーダル ── */}
       <Modal visible={areaPickerVisible} animationType="slide" transparent onRequestClose={() => setAreaPickerVisible(false)}>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(26,16,51,0.45)', justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: Brand.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 22, paddingTop: 22, paddingBottom: 53, maxHeight: '85%' }}>
             {pickerRegion === null ? (
               <>
-                <Text style={styles.modalTitle}>どのあたり？</Text>
-                <Text style={styles.modalSubtitle}>まず地方を選んでください</Text>
-                <ScrollView style={[styles.modalAreaScroll, { maxHeight: 320, marginTop: 16 }]}>
+                <Text style={{ fontWeight: '800', fontSize: 18, color: Brand.ink }}>どのあたり？</Text>
+                <Text style={{ fontWeight: '600', fontSize: 12, color: Brand.muted, marginTop: 2 }}>まず地方を選んでください</Text>
+                <ScrollView style={{ maxHeight: 320, marginTop: 16 }}>
                   {REGION_NAMES.map(r => (
-                    <Pressable key={r} onPress={() => setPickerRegion(r)} style={styles.menuRow}>
-                      <Text style={styles.menuRowText}>{r}</Text>
-                      <Text style={styles.menuRowArrow}>›</Text>
-                    </Pressable>
+                    <ScalePress key={r} onPress={() => setPickerRegion(r)} activeScale={0.98} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 14, marginBottom: 6, backgroundColor: Brand.bg }}>
+                      <Text style={{ fontWeight: '700', fontSize: 15, color: Brand.ink }}>{r}</Text>
+                      <Ionicons name="chevron-forward" size={16} color={Brand.muted} />
+                    </ScalePress>
                   ))}
                 </ScrollView>
               </>
             ) : (
               <>
-                <Text style={styles.modalTitle}>{pickerRegion}</Text>
-                <Text style={styles.modalSubtitle}>デートに行く都道府県を選んでください</Text>
-                <ScrollView style={[styles.modalAreaScroll, { maxHeight: 320, marginTop: 16 }]}>
+                <Text style={{ fontWeight: '800', fontSize: 18, color: Brand.ink }}>{pickerRegion}</Text>
+                <Text style={{ fontWeight: '600', fontSize: 12, color: Brand.muted, marginTop: 2 }}>デートに行く都道府県を選んでください</Text>
+                <ScrollView style={{ maxHeight: 320, marginTop: 16 }}>
                   {REGIONS[pickerRegion].map(p => (
-                    <Pressable
+                    <ScalePress
                       key={p}
                       onPress={() => { setArea(p); setAreaPickerVisible(false); }}
-                      style={[styles.menuRow, area === p && styles.menuRowOn]}
+                      activeScale={0.98}
+                      style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 14, marginBottom: 6, backgroundColor: area === p ? Brand.lav : Brand.bg }}
                     >
-                      <Text style={[styles.menuRowText, area === p && styles.menuRowTextOn]}>{p}</Text>
-                      {area === p && <Text style={styles.menuRowCheck}>✓</Text>}
-                    </Pressable>
+                      <Text style={{ fontWeight: '700', fontSize: 15, color: area === p ? Brand.purple : Brand.ink }}>{p}</Text>
+                      {area === p && <Ionicons name="checkmark" size={17} color={Brand.purple} />}
+                    </ScalePress>
                   ))}
                 </ScrollView>
               </>
             )}
-            <View style={styles.modalActions}>
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 32 }}>
               {pickerRegion !== null ? (
-                <Pressable onPress={() => setPickerRegion(null)} style={[styles.modalBtn, styles.modalBtnGhost]}>
-                  <Text style={[styles.modalBtnText, { color: C.ink2 }]}>地方を変更</Text>
-                </Pressable>
+                <ScalePress onPress={() => setPickerRegion(null)} style={{ flex: 1, height: 50, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: Brand.lav }}>
+                  <Text style={{ fontWeight: '800', fontSize: 15, color: Brand.ink2 }}>地方を変更</Text>
+                </ScalePress>
               ) : null}
-              <Pressable onPress={() => setAreaPickerVisible(false)} style={[styles.modalBtn, styles.modalBtnPrimary]}>
-                <Text style={[styles.modalBtnText, { color: '#fff' }]}>閉じる</Text>
-              </Pressable>
+              <ScalePress onPress={() => setAreaPickerVisible(false)} style={{ flex: 1, height: 50, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: Brand.purple }}>
+                <Text style={{ fontWeight: '800', fontSize: 15, color: '#fff' }}>閉じる</Text>
+              </ScalePress>
             </View>
           </View>
         </View>
@@ -562,117 +734,3 @@ export default function HomeScreen() {
     </SafeAreaView>
   );
 }
-
-// ─── Styles ────────────────────────────────────────────────────────────────
-const styles = StyleSheet.create({
-  safe:    { flex: 1, backgroundColor: C.bg },
-  content: { paddingBottom: 8 },
-
-  header: {
-    backgroundColor: C.card, paddingTop: 8, paddingHorizontal: 22, paddingBottom: 20,
-    borderBottomWidth: 1, borderBottomColor: C.line,
-  },
-  headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
-  stepText:  { fontWeight: '800', fontSize: 12, letterSpacing: 1.5, color: C.muted },
-  title:     { fontWeight: '700', fontSize: 28, color: C.ink, lineHeight: 34, marginBottom: 7 },
-  subtitle:  { fontWeight: '500', fontSize: 13.5, color: C.muted, lineHeight: 20 },
-  progressBg:  { height: 8, borderRadius: 99, backgroundColor: C.lav, marginTop: 14, overflow: 'hidden' },
-  progressBar: { height: '100%', borderRadius: 99 },
-
-  form: { paddingHorizontal: 22 },
-
-  block: { marginTop: 26 },
-
-  labelRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8, marginBottom: 12 },
-  labelText: { fontWeight: '700', fontSize: 16.5, color: C.ink },
-  labelOpt:  { fontWeight: '600', fontSize: 11, color: C.muted },
-
-  pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  pill: {
-    paddingHorizontal: 16, paddingVertical: 10,
-    borderRadius: 999, borderWidth: 1.5,
-    backgroundColor: C.lav, borderColor: C.lav,
-  },
-  pillText: { fontWeight: '700', fontSize: 14, color: C.ink2 },
-
-  catPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 13, paddingVertical: 9,
-    borderRadius: 999, borderWidth: 1.5,
-  },
-  catEmoji: { fontSize: 15 },
-  catText:  { fontWeight: '700', fontSize: 13.5 },
-
-  seg:      { flexDirection: 'row', backgroundColor: C.lav, borderRadius: 14, padding: 4, gap: 4 },
-  segItem:  { flex: 1, borderRadius: 10, paddingVertical: 11, alignItems: 'center' },
-  segItemOn: {
-    backgroundColor: C.purple,
-    shadowColor: C.purple, shadowOpacity: 0.36,
-    shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 4,
-  },
-  segText:   { fontWeight: '700', fontSize: 13.5, color: C.ink2 },
-  segTextOn: { color: '#fff' },
-
-  inputRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: C.card, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14,
-    borderWidth: 1, borderColor: C.line,
-  },
-  inputIcon:  { fontSize: 18 },
-  inputInner: { flex: 1, fontWeight: '700', fontSize: 15.5, color: C.ink },
-  textArea:   { minHeight: 68, textAlignVertical: 'top', lineHeight: 24 },
-
-  addBtn: {
-    paddingHorizontal: 14, paddingVertical: 8,
-    borderRadius: 10, backgroundColor: C.purple,
-  },
-  addBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
-
-  chip: {
-    paddingHorizontal: 14, paddingVertical: 9,
-    borderRadius: 999, backgroundColor: C.lav,
-  },
-  chipText: { fontWeight: '700', fontSize: 13.5, color: C.ink2 },
-
-  modalBackdrop: {
-    flex: 1, backgroundColor: 'rgba(26,16,51,0.45)',
-    justifyContent: 'flex-end',
-  },
-  modalCard: {
-    backgroundColor: C.card, borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    paddingHorizontal: 22, paddingTop: 22, paddingBottom: 36,
-    maxHeight: '85%',
-  },
-  modalAreaScroll: { maxHeight: 160 },
-  modalTitle:    { fontWeight: '800', fontSize: 18, color: C.ink },
-  modalSubtitle: { fontWeight: '600', fontSize: 12, color: C.muted, marginTop: 4 },
-  modalActions:  { flexDirection: 'row', gap: 10, marginTop: 24 },
-  modalBtn: {
-    flex: 1, height: 50, borderRadius: 14,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  modalBtnGhost:   { backgroundColor: C.lav },
-  modalBtnPrimary: { backgroundColor: C.purple },
-  modalBtnText:    { fontWeight: '800', fontSize: 15 },
-
-  menuRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingVertical: 14, paddingHorizontal: 16, borderRadius: 14,
-    marginBottom: 6, backgroundColor: C.bg,
-  },
-  menuRowOn:      { backgroundColor: C.lav },
-  menuRowText:    { fontWeight: '700', fontSize: 15, color: C.ink },
-  menuRowTextOn:  { color: C.purple },
-  menuRowArrow:   { fontWeight: '700', fontSize: 18, color: C.muted },
-  menuRowCheck:   { fontWeight: '800', fontSize: 16, color: C.purple },
-
-  ctaWrap: {
-    paddingHorizontal: 20, marginTop: 12,
-  },
-  cta: {
-    height: 56, borderRadius: 18, alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#7C5CFC', shadowOpacity: 0.32,
-    shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 6,
-  },
-  ctaText: { color: '#fff', fontSize: 16.5, fontWeight: '800' },
-});

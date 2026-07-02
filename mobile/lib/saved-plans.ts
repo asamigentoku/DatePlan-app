@@ -8,6 +8,7 @@ export interface SavedPlanRecord {
   id: string;
   savedAt: string;
   plan: Plan;
+  favorite?: boolean;
 }
 
 async function readRaw(): Promise<SavedPlanRecord[]> {
@@ -21,9 +22,15 @@ async function readRaw(): Promise<SavedPlanRecord[]> {
   }
 }
 
+export function sortSavedPlans(list: SavedPlanRecord[]): SavedPlanRecord[] {
+  return [...list].sort((a, b) => {
+    if (!!a.favorite !== !!b.favorite) return a.favorite ? -1 : 1;
+    return a.savedAt < b.savedAt ? 1 : -1;
+  });
+}
+
 export async function getSavedPlans(): Promise<SavedPlanRecord[]> {
-  const list = await readRaw();
-  return [...list].sort((a, b) => (a.savedAt < b.savedAt ? 1 : -1));
+  return sortSavedPlans(await readRaw());
 }
 
 export async function savePlan(plan: Plan): Promise<void> {
@@ -41,5 +48,15 @@ export async function deleteSavedPlan(id: string): Promise<void> {
   await AsyncStorage.setItem(
     KEY,
     JSON.stringify(list.filter((item) => item.id !== id)),
+  );
+}
+
+export async function toggleFavoriteSavedPlan(id: string): Promise<void> {
+  const list = await readRaw();
+  await AsyncStorage.setItem(
+    KEY,
+    JSON.stringify(list.map((item) => (
+      item.id === id ? { ...item, favorite: !item.favorite } : item
+    ))),
   );
 }
