@@ -1,8 +1,9 @@
-import { GetProps, YStack, styled } from 'tamagui';
+import { View, type ViewProps } from 'react-native';
 
-export const ThemedView = styled(YStack, {
-  name: 'ThemedView',
-  backgroundColor: '$background',
-});
+import { Brand } from '@/constants/theme';
 
-export type ThemedViewProps = GetProps<typeof ThemedView>;
+export type ThemedViewProps = ViewProps;
+
+export function ThemedView({ style, ...rest }: ThemedViewProps) {
+  return <View style={[{ backgroundColor: Brand.bg }, style]} {...rest} />;
+}

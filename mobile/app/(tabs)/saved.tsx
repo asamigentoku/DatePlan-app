@@ -1,8 +1,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFocusEffect } from '@react-navigation/native';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, FlatList, Modal, ScrollView, Text as RNText } from 'react-native';
+import { Alert, FlatList, Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
   useAnimatedStyle,
@@ -11,8 +12,6 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import { Text, XStack, YStack } from 'tamagui';
-import { LinearGradient } from 'tamagui/linear-gradient';
 
 import { CategoryIcon } from '@/components/ui/category-icon';
 import { Brand, Radius } from '@/constants/theme';
@@ -38,24 +37,26 @@ function HeartButton({ active, onPress }: { active: boolean; onPress: () => void
   const rStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
   return (
-    <YStack
-      position="absolute"
-      top={10}
-      right={10}
-      zIndex={2}
-      width={34}
-      height={34}
-      borderRadius={17}
-      backgroundColor="rgba(26,16,51,0.35)"
-      alignItems="center"
-      justifyContent="center"
+    <Pressable
       onPress={onPress}
       hitSlop={10}
-      pressStyle={{ opacity: 0.7 }}>
+      style={({ pressed }) => ({
+        position: 'absolute',
+        top: 10,
+        right: 10,
+        zIndex: 2,
+        width: 34,
+        height: 34,
+        borderRadius: 17,
+        backgroundColor: 'rgba(26,16,51,0.35)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        opacity: pressed ? 0.7 : 1,
+      })}>
       <Animated.View style={rStyle}>
         <Ionicons name={active ? 'heart' : 'heart-outline'} size={17} color={active ? '#FF5C7A' : '#fff'} />
       </Animated.View>
-    </YStack>
+    </Pressable>
   );
 }
 
@@ -70,18 +71,21 @@ function PlanCard({ item, index, onPress, onToggleFavorite }: {
   const grad = CARD_GRADS[index % CARD_GRADS.length];
 
   return (
-    <YStack
-      backgroundColor={Brand.card}
-      borderRadius={Radius.xxl}
-      overflow="hidden"
-      position="relative"
-      shadowColor={Brand.purple}
-      shadowOpacity={0.08}
-      shadowRadius={14}
-      shadowOffset={{ width: 0, height: 4 }}
-      elevation={3}
+    <Pressable
       onPress={onPress}
-      pressStyle={{ opacity: 0.92, scale: 0.99 }}>
+      style={({ pressed }) => ({
+        backgroundColor: Brand.card,
+        borderRadius: Radius.xxl,
+        overflow: 'hidden',
+        position: 'relative',
+        shadowColor: Brand.purple,
+        shadowOpacity: 0.08,
+        shadowRadius: 14,
+        shadowOffset: { width: 0, height: 4 },
+        elevation: 3,
+        opacity: pressed ? 0.92 : 1,
+        transform: [{ scale: pressed ? 0.99 : 1 }],
+      })}>
       {firstPhoto ? (
         <Image source={firstPhoto} style={{ width: '100%', height: 140 }} contentFit="cover" transition={200} />
       ) : (
@@ -89,32 +93,28 @@ function PlanCard({ item, index, onPress, onToggleFavorite }: {
           colors={grad}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          width="100%"
-          height={140}
-          alignItems="center"
-          justifyContent="center"
-          gap="$2">
-          <RNText style={{ fontSize: 15, fontWeight: '700', color: '#fff', paddingHorizontal: 16 }} numberOfLines={1}>
+          style={{ width: '100%', height: 140, alignItems: 'center', justifyContent: 'center', gap: 7 }}>
+          <Text style={{ fontSize: 15, fontWeight: '700', color: '#fff', paddingHorizontal: 16 }} numberOfLines={1}>
             {title}
-          </RNText>
+          </Text>
         </LinearGradient>
       )}
       <HeartButton active={!!item.favorite} onPress={onToggleFavorite} />
-      <YStack padding="$4">
-        <Text fontSize={16} fontWeight="700" color={Brand.ink} marginBottom="$1" numberOfLines={1}>
+      <View style={{ padding: 18 }}>
+        <Text style={{ fontSize: 16, fontWeight: '700', color: Brand.ink, marginBottom: 2 }} numberOfLines={1}>
           {title}
         </Text>
-        <Text fontSize={13} color={Brand.muted} marginBottom="$3">
+        <Text style={{ fontSize: 13, color: Brand.muted, marginBottom: 13 }}>
           {item.plan.area || 'エリア未指定'}
         </Text>
-        <XStack justifyContent="space-between" alignItems="center">
-          <Text fontSize={12} color={Brand.muted}>{label}</Text>
-          <XStack backgroundColor={Brand.lav} paddingHorizontal="$3" paddingVertical="$1.5" borderRadius={Radius.pill}>
-            <Text fontSize={11} fontWeight="700" color={Brand.purple}>{item.plan.spots.length} スポット</Text>
-          </XStack>
-        </XStack>
-      </YStack>
-    </YStack>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Text style={{ fontSize: 12, color: Brand.muted }}>{label}</Text>
+          <View style={{ backgroundColor: Brand.lav, paddingHorizontal: 13, paddingVertical: 4, borderRadius: Radius.pill }}>
+            <Text style={{ fontSize: 11, fontWeight: '700', color: Brand.purple }}>{item.plan.spots.length} スポット</Text>
+          </View>
+        </View>
+      </View>
+    </Pressable>
   );
 }
 
@@ -125,23 +125,32 @@ function DetailModal({ record, onClose, onDelete }: { record: SavedPlanRecord | 
   return (
     <Modal visible animationType="slide" presentationStyle="pageSheet">
       <SafeAreaView style={{ flex: 1, backgroundColor: Brand.bg }}>
-        <XStack
-          justifyContent="space-between"
-          alignItems="center"
-          paddingHorizontal="$5"
-          paddingVertical="$4"
-          borderBottomWidth={1}
-          borderBottomColor={Brand.line}
-          backgroundColor={Brand.card}>
-          <XStack alignItems="center" gap="$2" onPress={onClose} hitSlop={12} pressStyle={{ opacity: 0.6 }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            paddingHorizontal: 24,
+            paddingVertical: 18,
+            borderBottomWidth: 1,
+            borderBottomColor: Brand.line,
+            backgroundColor: Brand.card,
+          }}>
+          <Pressable
+            onPress={onClose}
+            hitSlop={12}
+            style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 7, opacity: pressed ? 0.6 : 1 })}>
             <Ionicons name="chevron-back" size={18} color={Brand.purple} />
-            <Text fontSize={15} color={Brand.purple} fontWeight="600">閉じる</Text>
-          </XStack>
-          <XStack alignItems="center" gap="$2" onPress={onDelete} hitSlop={12} pressStyle={{ opacity: 0.6 }}>
-            <Text fontSize={15} color="#EF4444" fontWeight="600">削除</Text>
+            <Text style={{ fontSize: 15, color: Brand.purple, fontWeight: '600' }}>閉じる</Text>
+          </Pressable>
+          <Pressable
+            onPress={onDelete}
+            hitSlop={12}
+            style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 7, opacity: pressed ? 0.6 : 1 })}>
+            <Text style={{ fontSize: 15, color: '#EF4444', fontWeight: '600' }}>削除</Text>
             <Ionicons name="trash" size={16} color="#EF4444" />
-          </XStack>
-        </XStack>
+          </Pressable>
+        </View>
 
         <ScrollView contentContainerStyle={{ paddingBottom: 48 }}>
           {/* Hero */}
@@ -149,34 +158,32 @@ function DetailModal({ record, onClose, onDelete }: { record: SavedPlanRecord | 
             colors={['#7C5CFC', '#5B3FE0']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            margin="$4"
-            borderRadius={Radius.xxl}
-            padding="$5">
-            <RNText style={{ fontSize: 22, fontWeight: '800', color: '#fff', letterSpacing: -0.3, marginBottom: 12 }}>
+            style={{ margin: 18, borderRadius: Radius.xxl, padding: 24 }}>
+            <Text style={{ fontSize: 22, fontWeight: '800', color: '#fff', letterSpacing: -0.3, marginBottom: 12 }}>
               {record.plan.theme || record.plan.spots[0]?.name || 'デートプラン'}
-            </RNText>
-            <XStack flexWrap="wrap" gap="$2">
+            </Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7 }}>
               {record.plan.area ? (
-                <XStack alignItems="center" gap="$1.5" backgroundColor="rgba(255,255,255,0.22)" paddingHorizontal="$3" paddingVertical="$1.5" borderRadius={Radius.pill}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(255,255,255,0.22)', paddingHorizontal: 13, paddingVertical: 4, borderRadius: Radius.pill }}>
                   <Ionicons name="location" size={12} color="#fff" />
-                  <RNText style={{ fontSize: 12, color: '#fff', fontWeight: '600' }}>{record.plan.area}</RNText>
-                </XStack>
+                  <Text style={{ fontSize: 12, color: '#fff', fontWeight: '600' }}>{record.plan.area}</Text>
+                </View>
               ) : null}
               {record.plan.budget ? (
-                <XStack alignItems="center" gap="$1.5" backgroundColor="rgba(255,255,255,0.22)" paddingHorizontal="$3" paddingVertical="$1.5" borderRadius={Radius.pill}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(255,255,255,0.22)', paddingHorizontal: 13, paddingVertical: 4, borderRadius: Radius.pill }}>
                   <Ionicons name="wallet" size={12} color="#fff" />
-                  <RNText style={{ fontSize: 12, color: '#fff', fontWeight: '600' }}>{record.plan.budget}</RNText>
-                </XStack>
+                  <Text style={{ fontSize: 12, color: '#fff', fontWeight: '600' }}>{record.plan.budget}</Text>
+                </View>
               ) : null}
               {record.plan.weather ? (
-                <XStack alignItems="center" gap="$1.5" backgroundColor="rgba(255,255,255,0.22)" paddingHorizontal="$3" paddingVertical="$1.5" borderRadius={Radius.pill}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(255,255,255,0.22)', paddingHorizontal: 13, paddingVertical: 4, borderRadius: Radius.pill }}>
                   <Ionicons name="partly-sunny" size={12} color="#fff" />
-                  <RNText style={{ fontSize: 12, color: '#fff', fontWeight: '600' }}>
+                  <Text style={{ fontSize: 12, color: '#fff', fontWeight: '600' }}>
                     {record.plan.weather.status} {record.plan.weather.temperature}°C
-                  </RNText>
-                </XStack>
+                  </Text>
+                </View>
               ) : null}
-            </XStack>
+            </View>
           </LinearGradient>
 
           {/* Spots */}
@@ -186,76 +193,80 @@ function DetailModal({ record, onClose, onDelete }: { record: SavedPlanRecord | 
             const desc = spot.desc || spot.description || '';
             const isLast = i === record.plan.spots.length - 1;
             return (
-              <XStack key={i} paddingHorizontal="$5" paddingTop="$2">
+              <View key={i} style={{ flexDirection: 'row', paddingHorizontal: 24, paddingTop: 7 }}>
                 {/* Spine */}
-                <YStack width={30} alignItems="center" alignSelf={isLast ? 'flex-start' : 'stretch'}>
+                <View style={{ width: 30, alignItems: 'center', alignSelf: isLast ? 'flex-start' : 'stretch' }}>
                   <LinearGradient
                     colors={[...cat.gradient]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
-                    width={30}
-                    height={30}
-                    borderRadius={15}
-                    alignItems="center"
-                    justifyContent="center"
-                    shadowColor={dynColor(cat.color)}
-                    shadowOpacity={0.3}
-                    shadowRadius={6}
-                    shadowOffset={{ width: 0, height: 3 }}
-                    elevation={3}
-                    zIndex={1}>
+                    style={{
+                      width: 30,
+                      height: 30,
+                      borderRadius: 15,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      shadowColor: dynColor(cat.color),
+                      shadowOpacity: 0.3,
+                      shadowRadius: 6,
+                      shadowOffset: { width: 0, height: 3 },
+                      elevation: 3,
+                      zIndex: 1,
+                    }}>
                     <CategoryIcon icon={cat.icon} size={14} color="#fff" />
                   </LinearGradient>
                   {!isLast && (
-                    <YStack flex={1} width={3} borderRadius={2} minHeight={16} backgroundColor={dynColor(`${cat.color}40`)} />
+                    <View style={{ flex: 1, width: 3, borderRadius: 2, minHeight: 16, backgroundColor: dynColor(`${cat.color}40`) }} />
                   )}
-                </YStack>
+                </View>
                 {/* Card */}
-                <YStack flex={1} paddingLeft="$3" paddingBottom={isLast ? '$1' : '$5'}>
-                  <YStack
-                    backgroundColor={Brand.card}
-                    borderRadius={Radius.lg}
-                    borderLeftWidth={4}
-                    borderLeftColor={dynColor(cat.color)}
-                    overflow="hidden"
-                    shadowColor={Brand.purple}
-                    shadowOpacity={0.06}
-                    shadowRadius={8}
-                    shadowOffset={{ width: 0, height: 2 }}
-                    elevation={2}>
+                <View style={{ flex: 1, paddingLeft: 13, paddingBottom: isLast ? 2 : 24 }}>
+                  <View
+                    style={{
+                      backgroundColor: Brand.card,
+                      borderRadius: Radius.lg,
+                      borderLeftWidth: 4,
+                      borderLeftColor: dynColor(cat.color),
+                      overflow: 'hidden',
+                      shadowColor: Brand.purple,
+                      shadowOpacity: 0.06,
+                      shadowRadius: 8,
+                      shadowOffset: { width: 0, height: 2 },
+                      elevation: 2,
+                    }}>
                     {photo ? (
                       <Image source={photo} style={{ width: '100%', height: 110 }} contentFit="cover" transition={200} />
                     ) : null}
-                    <YStack padding="$3.5" gap="$1">
-                      <Text fontSize={15} fontWeight="700" color={Brand.ink}>{spot.name}</Text>
+                    <View style={{ padding: 16, gap: 2 }}>
+                      <Text style={{ fontSize: 15, fontWeight: '700', color: Brand.ink }}>{spot.name}</Text>
                       {spot.category ? (
-                        <Text fontSize={11.5} fontWeight="600" color={dynColor(cat.color)} marginBottom="$2">{spot.category}</Text>
+                        <Text style={{ fontSize: 11.5, fontWeight: '600', color: dynColor(cat.color), marginBottom: 7 }}>{spot.category}</Text>
                       ) : null}
                       {spot.stay_time ? (
-                        <XStack alignSelf="flex-start" alignItems="center" gap="$1" backgroundColor="#E0F2FE" paddingHorizontal="$2.5" paddingVertical="$1" borderRadius={Radius.pill} marginBottom="$2">
+                        <View style={{ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 2, backgroundColor: '#E0F2FE', paddingHorizontal: 10, paddingVertical: 2, borderRadius: Radius.pill, marginBottom: 7 }}>
                           <Ionicons name="time" size={11} color="#0284C7" />
-                          <Text fontSize={12} color="#0284C7" fontWeight="600">{spot.stay_time}分</Text>
-                        </XStack>
+                          <Text style={{ fontSize: 12, color: '#0284C7', fontWeight: '600' }}>{spot.stay_time}分</Text>
+                        </View>
                       ) : null}
-                      {desc ? <Text fontSize={13} color={Brand.ink2} lineHeight={21}>{desc}</Text> : null}
+                      {desc ? <Text style={{ fontSize: 13, color: Brand.ink2, lineHeight: 21 }}>{desc}</Text> : null}
                       {spot.tip ? (
-                        <XStack marginTop="$2" backgroundColor="#FFFBEB" padding="$2.5" borderRadius={Radius.sm} alignItems="flex-start" gap="$1.5">
+                        <View style={{ marginTop: 7, backgroundColor: '#FFFBEB', padding: 10, borderRadius: Radius.sm, flexDirection: 'row', alignItems: 'flex-start', gap: 4 }}>
                           <Ionicons name="bulb" size={13} color="#D97706" style={{ marginTop: 2 }} />
-                          <Text fontSize={12} color="#D97706" lineHeight={18} flex={1}>{spot.tip}</Text>
-                        </XStack>
+                          <Text style={{ fontSize: 12, color: '#D97706', lineHeight: 18, flex: 1 }}>{spot.tip}</Text>
+                        </View>
                       ) : null}
-                    </YStack>
-                  </YStack>
-                </YStack>
-              </XStack>
+                    </View>
+                  </View>
+                </View>
+              </View>
             );
           })}
 
           {record.plan.totalTip ? (
-            <YStack marginHorizontal="$5" marginTop="$2" backgroundColor={Brand.lav} borderRadius={Radius.lg} padding="$4">
-              <Text fontSize={13} fontWeight="700" color={Brand.purple} marginBottom="$2">プランのポイント</Text>
-              <Text fontSize={14} color={Brand.ink2} lineHeight={23}>{record.plan.totalTip}</Text>
-            </YStack>
+            <View style={{ marginHorizontal: 24, marginTop: 7, backgroundColor: Brand.lav, borderRadius: Radius.lg, padding: 18 }}>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: Brand.purple, marginBottom: 7 }}>プランのポイント</Text>
+              <Text style={{ fontSize: 14, color: Brand.ink2, lineHeight: 23 }}>{record.plan.totalTip}</Text>
+            </View>
           ) : null}
         </ScrollView>
       </SafeAreaView>
@@ -296,15 +307,17 @@ export default function SavedScreen() {
         contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 20, paddingBottom: 24, gap: 12 }}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
-          <YStack alignItems="center" paddingTop="$14" gap="$4">
-            <LinearGradient colors={['#7C5CFC', '#5B3FE0']} width={80} height={80} borderRadius={40} alignItems="center" justifyContent="center">
+          <View style={{ alignItems: 'center', paddingTop: 116, gap: 18 }}>
+            <LinearGradient
+              colors={['#7C5CFC', '#5B3FE0']}
+              style={{ width: 80, height: 80, borderRadius: 40, alignItems: 'center', justifyContent: 'center' }}>
               <Ionicons name="albums" size={32} color="#fff" />
             </LinearGradient>
-            <Text fontSize={17} fontWeight="700" color={Brand.ink}>まだプランがありません</Text>
-            <Text fontSize={14} color={Brand.muted} lineHeight={24} textAlign="center">
+            <Text style={{ fontSize: 17, fontWeight: '700', color: Brand.ink }}>まだプランがありません</Text>
+            <Text style={{ fontSize: 14, color: Brand.muted, lineHeight: 24, textAlign: 'center' }}>
               ホームでAIプランを作成して{'\n'}保存してみましょう
             </Text>
-          </YStack>
+          </View>
         }
         renderItem={({ item, index }) => (
           <PlanCard

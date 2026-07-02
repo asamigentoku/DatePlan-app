@@ -1,9 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useState } from 'react';
-import { ScrollView, Text as RNText } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Text, XStack, YStack } from 'tamagui';
-import { LinearGradient } from 'tamagui/linear-gradient';
 
 import { dynColor } from '@/constants/categories';
 import { Brand, Radius } from '@/constants/theme';
@@ -114,84 +113,91 @@ export default function TalkScreen() {
       <ScrollView contentContainerStyle={{ paddingBottom: 8 }} showsVerticalScrollIndicator={false}>
 
         {/* ── Header ── */}
-        <YStack paddingHorizontal="$5" paddingTop="$6" paddingBottom="$2">
-          <Text fontSize={26} fontWeight="800" color={Brand.ink} marginBottom="$1">トークテーマ</Text>
-          <Text fontSize={14} color={Brand.muted}>デート中の話題が思い浮かばないときに</Text>
-        </YStack>
+        <View style={{ paddingHorizontal: 24, paddingTop: 32, paddingBottom: 7 }}>
+          <Text style={{ fontSize: 26, fontWeight: '800', color: Brand.ink, marginBottom: 2 }}>トークテーマ</Text>
+          <Text style={{ fontSize: 14, color: Brand.muted }}>デート中の話題が思い浮かばないときに</Text>
+        </View>
 
         {/* ── Generate button ── */}
-        <LinearGradient
-          colors={[Brand.purple, Brand.purpleDark]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          marginHorizontal="$4"
-          marginTop="$4"
-          marginBottom="$2"
-          borderRadius={Radius.xl}
-          height={56}
-          alignItems="center"
-          justifyContent="center"
-          flexDirection="row"
-          gap="$2"
-          shadowColor={Brand.ink}
-          shadowOpacity={0.22}
-          shadowRadius={10}
-          shadowOffset={{ width: 0, height: 5 }}
-          elevation={5}
-          onPress={generate}
-          pressStyle={{ opacity: 0.85 }}>
-          <Ionicons name={generatedOnce ? 'refresh' : 'sparkles'} size={18} color="#fff" />
-          <RNText style={{ color: '#fff', fontSize: 16, fontWeight: '800' }}>
-            {generatedOnce ? '再生成する' : 'テーマを生成する'}
-          </RNText>
-        </LinearGradient>
+        <Pressable onPress={generate} style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}>
+          <LinearGradient
+            colors={[Brand.purple, Brand.purpleDark]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={{
+              marginHorizontal: 18,
+              marginTop: 18,
+              marginBottom: 7,
+              borderRadius: Radius.xl,
+              height: 56,
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexDirection: 'row',
+              gap: 7,
+              shadowColor: Brand.ink,
+              shadowOpacity: 0.22,
+              shadowRadius: 10,
+              shadowOffset: { width: 0, height: 5 },
+              elevation: 5,
+            }}>
+            <Ionicons name={generatedOnce ? 'refresh' : 'sparkles'} size={18} color="#fff" />
+            <Text style={{ color: '#fff', fontSize: 16, fontWeight: '800' }}>
+              {generatedOnce ? '再生成する' : 'テーマを生成する'}
+            </Text>
+          </LinearGradient>
+        </Pressable>
 
         {/* ── Results ── */}
         {generated.map(({ category, themes }) => (
-          <YStack key={category.label} marginTop="$5" marginHorizontal="$4">
-            <XStack
-              alignSelf="flex-start"
-              alignItems="center"
-              gap="$1.5"
-              backgroundColor={dynColor(category.bg)}
-              paddingHorizontal="$3"
-              paddingVertical="$1.5"
-              borderRadius={Radius.pill}
-              marginBottom="$2">
+          <View key={category.label} style={{ marginTop: 24, marginHorizontal: 18 }}>
+            <View
+              style={{
+                alignSelf: 'flex-start',
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 4,
+                backgroundColor: dynColor(category.bg),
+                paddingHorizontal: 13,
+                paddingVertical: 4,
+                borderRadius: Radius.pill,
+                marginBottom: 7,
+              }}>
               <Ionicons name={category.icon} size={13} color={category.color} />
-              <Text fontSize={12} fontWeight="700" color={dynColor(category.color)}>{category.label}</Text>
-            </XStack>
-            <YStack
-              backgroundColor={Brand.card}
-              borderRadius={Radius.xl}
-              paddingHorizontal="$4.5"
-              paddingVertical="$1"
-              shadowColor={Brand.purple}
-              shadowOpacity={0.05}
-              shadowRadius={10}
-              shadowOffset={{ width: 0, height: 2 }}
-              elevation={2}>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: dynColor(category.color) }}>{category.label}</Text>
+            </View>
+            <View
+              style={{
+                backgroundColor: Brand.card,
+                borderRadius: Radius.xl,
+                paddingHorizontal: 21,
+                paddingVertical: 2,
+                shadowColor: Brand.purple,
+                shadowOpacity: 0.05,
+                shadowRadius: 10,
+                shadowOffset: { width: 0, height: 2 },
+                elevation: 2,
+              }}>
               {themes.map((theme, i) => (
-                <YStack key={theme}>
-                  {i > 0 && <YStack height={1} backgroundColor={Brand.line} />}
-                  <XStack alignItems="center" gap="$3" paddingVertical="$4">
-                    <YStack width={7} height={7} borderRadius={4} flexShrink={0} backgroundColor={dynColor(category.color)} />
-                    <Text fontSize={14} color={Brand.ink} fontWeight="500" flex={1} lineHeight={22}>{theme}</Text>
-                  </XStack>
-                </YStack>
+                <View key={theme}>
+                  {i > 0 && <View style={{ height: 1, backgroundColor: Brand.line }} />}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 13, paddingVertical: 18 }}>
+                    <View style={{ width: 7, height: 7, borderRadius: 4, flexShrink: 0, backgroundColor: dynColor(category.color) }} />
+                    <Text style={{ fontSize: 14, color: Brand.ink, fontWeight: '500', flex: 1, lineHeight: 22 }}>{theme}</Text>
+                  </View>
+                </View>
               ))}
-            </YStack>
-          </YStack>
+            </View>
+          </View>
         ))}
 
         {/* ── Empty state ── */}
         {!generatedOnce && (
-          <YStack alignItems="center" marginTop="$14">
-            <Text fontSize={14} color={Brand.muted}>ボタンを押してテーマを生成してみよう</Text>
-          </YStack>
+          <View style={{ alignItems: 'center', marginTop: 116 }}>
+            <Text style={{ fontSize: 14, color: Brand.muted }}>ボタンを押してテーマを生成してみよう</Text>
+          </View>
         )}
 
-        <YStack height={40} />
+        <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
   );

@@ -1,9 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Link } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, FlatList, KeyboardAvoidingView, Platform, Text as RNText } from 'react-native';
+import { Alert, FlatList, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Input, Text, XStack, YStack } from 'tamagui';
 
 import { dynColor } from '@/constants/categories';
 import { Brand, Radius } from '@/constants/theme';
@@ -17,6 +16,7 @@ function nextId() {
 }
 
 export default function ExploreScreen() {
+  const router = useRouter();
   const [draft, setDraft] = useState('');
   const [items, setItems] = useState<Item[]>([
     { id: nextId(), title: '牛乳', done: false },
@@ -48,45 +48,33 @@ export default function ExploreScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Brand.bg }}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <YStack paddingHorizontal="$5" paddingBottom="$3" gap="$1">
-          <Text fontSize={26} fontWeight="800" color={Brand.ink}>買い物メモ</Text>
-          <Text fontSize={13} color={Brand.muted}>デモ用の別アプリ題材です。</Text>
-        </YStack>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 24, paddingBottom: 13 }}>
+          <Pressable
+            onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+            hitSlop={10}
+            style={({ pressed }) => ({
+              width: 34,
+              height: 34,
+              borderRadius: 17,
+              backgroundColor: Brand.lav,
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: pressed ? 0.8 : 1,
+            })}>
+            <Ionicons name="chevron-back" size={18} color={Brand.purple} />
+          </Pressable>
+          <View style={{ gap: 2 }}>
+            <Text style={{ fontSize: 26, fontWeight: '800', color: Brand.ink }}>買い物メモ</Text>
+            <Text style={{ fontSize: 13, color: Brand.muted }}>デモ用の別アプリ題材です。</Text>
+          </View>
+        </View>
 
         <FlatList
           data={sorted}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16, gap: 8 }}
-          ListHeaderComponent={
-            <YStack
-              marginBottom="$3.5"
-              padding="$3.5"
-              gap="$2.5"
-              borderRadius={Radius.md}
-              backgroundColor={Brand.card}
-              borderWidth={1}
-              borderColor={Brand.line}>
-              <Text fontSize={13} color={Brand.ink2}>
-                ルート構成のサンプルは「マイページ」タブから開けます。
-              </Text>
-              <Link href={'/profile' as never} asChild>
-                <XStack alignSelf="flex-start" alignItems="center" gap="$1">
-                  <Text fontSize={14} color={Brand.purple} fontWeight="700">マイページへ</Text>
-                  <Ionicons name="chevron-forward" size={14} color={Brand.purple} />
-                </XStack>
-              </Link>
-            </YStack>
-          }
           renderItem={({ item }) => (
-            <XStack
-              alignItems="center"
-              gap="$3"
-              paddingVertical="$3.5"
-              paddingHorizontal="$3.5"
-              borderRadius={Radius.md}
-              backgroundColor={Brand.card}
-              borderWidth={1}
-              borderColor={Brand.line}
+            <Pressable
               onPress={() => toggle(item.id)}
               onLongPress={() =>
                 Alert.alert('削除しますか？', item.title, [
@@ -94,65 +82,90 @@ export default function ExploreScreen() {
                   { text: '削除', style: 'destructive', onPress: () => remove(item.id) },
                 ])
               }
-              pressStyle={{ opacity: 0.85 }}>
-              <YStack
-                width={22}
-                height={22}
-                borderRadius={11}
-                alignItems="center"
-                justifyContent="center"
-                backgroundColor={item.done ? Brand.purple : Brand.lav}>
+              style={({ pressed }) => ({
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 13,
+                paddingVertical: 16,
+                paddingHorizontal: 16,
+                borderRadius: Radius.md,
+                backgroundColor: Brand.card,
+                borderWidth: 1,
+                borderColor: Brand.line,
+                opacity: pressed ? 0.85 : 1,
+              })}>
+              <View
+                style={{
+                  width: 22,
+                  height: 22,
+                  borderRadius: 11,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: item.done ? Brand.purple : Brand.lav,
+                }}>
                 {item.done ? <Ionicons name="checkmark" size={14} color="#fff" /> : null}
-              </YStack>
+              </View>
               <Text
-                fontSize={16}
-                color={Brand.ink}
-                flex={1}
-                numberOfLines={2}
-                textDecorationLine={item.done ? 'line-through' : 'none'}
-                opacity={item.done ? 0.55 : 1}>
+                style={{
+                  fontSize: 16,
+                  color: Brand.ink,
+                  flex: 1,
+                  textDecorationLine: item.done ? 'line-through' : 'none',
+                  opacity: item.done ? 0.55 : 1,
+                }}
+                numberOfLines={2}>
                 {item.title}
               </Text>
-            </XStack>
+            </Pressable>
           )}
           ListEmptyComponent={
-            <Text paddingVertical="$6" textAlign="center" color={Brand.muted}>
+            <Text style={{ paddingVertical: 32, textAlign: 'center', color: Brand.muted }}>
               まだありません。下から追加してください。
             </Text>
           }
         />
 
-        <XStack
-          alignItems="center"
-          gap="$2.5"
-          paddingHorizontal="$4"
-          paddingVertical="$3"
-          borderTopWidth={1}
-          borderTopColor={Brand.line}
-          backgroundColor={Brand.card}>
-          <Input
-            flex={1}
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 10,
+            paddingHorizontal: 18,
+            paddingVertical: 13,
+            borderTopWidth: 1,
+            borderTopColor: Brand.line,
+            backgroundColor: Brand.card,
+          }}>
+          <TextInput
+            style={{
+              flex: 1,
+              height: 44,
+              paddingHorizontal: 14,
+              borderWidth: 1,
+              borderColor: Brand.line,
+              borderRadius: Radius.sm,
+              backgroundColor: Brand.bg,
+              color: Brand.ink,
+            }}
             value={draft}
             onChangeText={setDraft}
             placeholder="項目を入力"
             placeholderTextColor={dynColor(Brand.muted)}
             onSubmitEditing={add}
             returnKeyType="done"
-            borderColor={Brand.line}
-            borderRadius={Radius.sm}
-            backgroundColor={Brand.bg}
-            color={Brand.ink}
           />
-          <XStack
-            paddingHorizontal="$4"
-            paddingVertical="$3"
-            borderRadius={Radius.sm}
-            backgroundColor={Brand.purple}
+          <Pressable
             onPress={add}
-            pressStyle={{ opacity: 0.88 }}>
-            <RNText style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>追加</RNText>
-          </XStack>
-        </XStack>
+            style={({ pressed }) => ({
+              paddingHorizontal: 18,
+              paddingVertical: 13,
+              borderRadius: Radius.sm,
+              backgroundColor: Brand.purple,
+              opacity: pressed ? 0.88 : 1,
+            })}>
+            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>追加</Text>
+          </Pressable>
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

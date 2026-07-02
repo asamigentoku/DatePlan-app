@@ -28,7 +28,7 @@ export const Colors = {
 };
 
 // ─── DatePlan ブランドカラー ────────────────────────────────────────────────
-// アプリ全体（Tamagui 化した各画面）で共有する紫系デザインのカラーパレット
+// アプリ全体で共有する紫系デザインのカラーパレット
 export const Brand = {
   purpleLight: '#9C84FF',
   purple: '#7C5CFC',
@@ -55,7 +55,7 @@ export const Brand = {
   catOrange: '#EA580C',
 } as const;
 
-// 角丸のスケール（Tamagui の $lg 等のトークンは未定義のため数値で共有）
+// 角丸のスケール（数値で共有）
 export const Radius = {
   sm: 10,
   md: 14,
