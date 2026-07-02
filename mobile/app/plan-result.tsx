@@ -3,7 +3,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -15,6 +16,7 @@ import type { DtoPlanResponse, DtoSpotInfo } from '@/lib/api/petstore';
 import type { Plan } from '@/lib/date-plan-types';
 import { getCurrentPlan } from '@/lib/plan-store';
 import { savePlan } from '@/lib/saved-plans';
+import { getSettings } from '@/lib/settings-store';
 
 const SAVE_DONE_GRAD = ['#059669', '#10B981'] as const;
 const BTN_GRAD = [Brand.purple, Brand.purpleDark] as const;
@@ -158,7 +160,20 @@ function SpotRow({ spot, time, isLast, nextColor }: {
 export default function PlanResultScreen() {
   const router = useRouter();
   const [saved, setSaved] = useState(false);
+  const [showMap, setShowMap] = useState(false);
   const current = getCurrentPlan();
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      getSettings().then((s) => {
+        if (active) setShowMap(s.showMapInPlanResult);
+      });
+      return () => {
+        active = false;
+      };
+    }, []),
+  );
 
   console.log('plan-result表示データ:', JSON.stringify(current, null, 2));
 
@@ -312,8 +327,8 @@ export default function PlanResultScreen() {
           ))}
         </View>
 
-        {/* ── Route Map ── */}
-        {routeSpots.length > 0 ? <PlanRouteMap spots={routeSpots} /> : null}
+        {/* ── Route Map（設定タブでオン/オフ切り替え可能、デフォルトはオフ） ── */}
+        {showMap && routeSpots.length > 0 ? <PlanRouteMap spots={routeSpots} /> : null}
 
         {/* ── Timeline ── */}
         <View style={{ paddingHorizontal: 21, paddingTop: 7 }}>

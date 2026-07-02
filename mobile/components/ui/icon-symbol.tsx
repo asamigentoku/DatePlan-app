@@ -53,6 +53,9 @@ const MAPPING = {
   'building.columns.fill': 'business',
   'moon.stars.fill': 'moon',
   'photo.fill': 'image',
+  'gearshape.fill': 'settings',
+  'questionmark.circle.fill': 'help-circle',
+  'info.circle.fill': 'information-circle',
 } as IconMapping;
 
 /**
