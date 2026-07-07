@@ -1,13 +1,17 @@
 package router
 
 import (
+	"time"
+
 	"github.com/asamigentoku/DatePlan-app/internal/client"
 	"github.com/asamigentoku/DatePlan-app/internal/handler"
+	"github.com/asamigentoku/DatePlan-app/internal/middleware"
 	"github.com/asamigentoku/DatePlan-app/internal/repository"
 	"github.com/asamigentoku/DatePlan-app/internal/service"
 	"github.com/asamigentoku/DatePlan-app/pkg/config"
 	"github.com/asamigentoku/DatePlan-app/pkg/database"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/time/rate"
 	"gorm.io/gorm"
 )
 
@@ -28,6 +32,7 @@ func setupPlanRouters(rg *gin.RouterGroup, cfg *config.Config, db *gorm.DB, mong
 	planH := handler.NewPlanHandler(planSvc)
 
 	plans := rg.Group("/plans")
+	plans.Use(middleware.RateLimiter(rate.Every(12*time.Second), 3))
 	{
 		plans.POST("", planH.MakePlans)
 	}
