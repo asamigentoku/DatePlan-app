@@ -1,59 +1,141 @@
 # DatePlan-app
-**AI × 最適化アルゴリズムで「最高の1日」をデザインするデートプラン作成アプリ**
 
-「どこへ行くか」という悩みから「どう回るか」という移動の非効率までを、AIとグラフ理論で解決します。ユーザーの抽象的な要望を具体的なタイムラインへと変換し、実用性の高いプランを提案します。
+**AIとリアルタイム情報でお出かけプランを自動生成するデートプラン作成アプリ**
+
+行き先選びに悩む時間を減らすことを目指し、LLMによるプラン生成と地図・天気・写真などの外部APIを組み合わせて、具体的なタイムラインを提案します。
+
+### ターゲット
+デートプランを考えるのが苦手な彼氏、彼女
+
+### アプリダウンロードリンク
+https://apps.apple.com/jp/app/lumoria/id6786768794
+
+### iosアプリ写真
+
+| ![](readme_img/1260x2736_IMG_9222.png) | ![](readme_img/1260x2736_IMG_9223.png) | ![](readme_img/1260x2736_IMG_9224.png) | ![](readme_img/1260x2736_IMG_9225.png) | ![](readme_img/1260x2736_IMG_9226.png) | ![](readme_img/1260x2736_IMG_9228.png) |
+| :---: | :---: | :---: | :---: | :---: | :---: |
+
+### アプリ構成図
+
+![アプリ構成図](readme_img/構成図.png)
 
 ---
 
 ## 📅 概要
-- **期間**: 2026年3月 〜 現在
-- **リポジトリ**: [https://github.com/asamigentoku/DatePlan-app](https://github.com/asamigentoku/DatePlan-app)
 
-本アプリは、Google Maps APIから取得したリアルタイムなスポット情報と、Groq（LLM）による文脈理解、そして最短経路アルゴリズムを組み合わせた、お出かけプラン最適化ツールです。
+- **リポジトリ**: [https://github.com/asamigentoku/DatePlan-app](https://github.com/asamigentoku/DatePlan-app)
+- **構成**: Go(Gin) 製バックエンド + Expo(React Native) 製モバイルアプリ
+
+ユーザーが指定したエリア・希望スポットをもとに、Groq（LLM、OpenAIへのフォールバック付き）でプラン本文を生成し、Google Places / Nominatim / Open-Meteo / Pixabay から取得した座標・天気・写真情報を組み合わせて1つのプランに仕上げます。
 
 ## ✨ 主な機能
-1. **AIパーソナライズ・プランニング**
-  - Groq (LLM) を利用し、ユーザーのテーマや場所から最適なスポットを抽出。
-2. **ルート最適化（最短経路算出）**
-  - ダイクストラ法を用い、スポット間の移動コストを最小化。効率的な訪問順序を自動生成。
-3. **リッチなスポット情報の統合**
-  - 座標、写真、天気、営業時間などの外部APIデータを集約。
-4. **マルチデバイス対応**
-  - Next.js (Web) と React Native (Mobile) の両方で利用可能。
+
+1. **AIによるプラン生成**
+   - Groq（`openai-go` 経由）にエリア・希望スポット・当日の天気を渡し、デートプラン本文を生成。
+   - Groq がレート制限（429）を返した場合は OpenAI にフォールバック。
+2. **スポット情報の自動付与**
+   - Google Places API でスポットを検索し、Nominatim（失敗時は Google Geocoding）で座標を、Pixabay で参考写真を並行取得して各スポットに付与。
+3. **天気情報の統合**
+   - Open-Meteo から指定日の気温・降水確率・天気概況を取得し、プラン生成のコンテキストに反映。
+4. **MongoDB によるキャッシュ**
+   - スポット検索・座標・天気・画像の取得結果を MongoDB にキャッシュし、外部APIの呼び出し回数とレスポンス時間を削減。
+5. **認証・お気に入り管理**
+   - JWT 認証、ユーザーCRUD、スポットのお気に入り登録などを REST API として提供（PostgreSQL / GORM）。
+6. **レートリミット**
+   - プラン作成エンドポイントに IP 単位のトークンバケット式レートリミッタを適用し、外部APIの過負荷を防止。
+
 
 ## 🛠 技術スタック
+
 | 分類 | 技術 |
 | :--- | :--- |
-| **Backend** | **Go (Gin)** |
-| **Frontend** | **Next.js**, **React Native** |
-| **Database** | **MongoDB**, **Redis** |
-| **AI / LLM** | **Groq (Llama 3等)** |
-| **APIs** | **Google Maps API**, **OpenWeather API** |
+| **Backend** | Go, Gin, GORM |
+| **Mobile** | Expo (React Native), Expo Router, TanStack Query |
+| **Database** | PostgreSQL（ユーザー等）, MongoDB（外部APIキャッシュ） |
+| **AI / LLM** | Groq（OpenAI互換API）, OpenAI（フォールバック） |
+| **外部API** | Google Places API, Nominatim, Open-Meteo, Pixabay |
+| **APIドキュメント** | OpenAPI (swaggo), Orval（フロント向け型生成） |
 
-## 💡 技術的な工夫と挑戦
-- **複雑なデータ構造の管理**:
-  階層の深いデートプランのJSONデータを効率的に扱うため、スキーマレスな **MongoDB** を採用。Goの構造体とシームレスに連携させ、柔軟なデータ拡張性を確保しています。
-- **ハイブリッドな提案ロジック**:
-  LLMによる「感性的な提案」と、アルゴリズムによる「数学的な最適解」を融合。単なるスポット羅列ではなく、現実的に移動可能なスケジュールを実現。
-- **パフォーマンス最適化**:
-  外部APIのレート制限対策と高速なレスポンスを実現するため、**Redis** によるキャッシュ戦略を導入。
+## 📂 ディレクトリ構成
 
-## 🚀 今後の展望
-- **収益化の実現**:
-  提案スポットへのアフィリエイト連携や予約機能の導入によるビジネスモデルの構築。
-- **A2UI（Agent-to-User Interface）の実装**:
-  状況（現在地、天候の変化、予定の遅延）に合わせて、AIエージェントが動的にUIとルートを再生成する次世代プロトコルの採用。
-- **機械学習によるパーソナライズ**:
-  ユーザーの過去の嗜好を学習し、使えば使うほど「好みに合う」スポットを優先表示。
+```
+.
+├── backend/    # Go(Gin) API サーバー
+│   ├── cmd/server        # エントリポイント
+│   └── internal/
+│       ├── handler/      # HTTPハンドラ
+│       ├── service/      # ビジネスロジック（プラン生成など）
+│       ├── client/       # 外部API連携（Google, Groq, OpenAI, Pixabay 等）
+│       ├── repository/   # DB/キャッシュアクセス
+│       └── middleware/   # 認証・CORS・レートリミット
+├── mobile/     # Expo(React Native) アプリ
+├── spec/       # API仕様関連
+├── infra/      # インフラ定義
+├── nginx/      # Nginx設定
+└── docker-compose.yml
+```
 
 ## 📦 セットアップ
+
+### 環境変数
+
+`.env.example` を参考に `.env` を作成してください。
+
 ```bash
-# Backend (Go/Gin)
+cp .env.example .env
+```
+
+| 変数 | 説明 |
+| :--- | :--- |
+| `JWT_SECRET` | JWT署名用シークレット |
+| `GOOGLE_MAP_API_KEY` | Google Maps / Places API キー |
+| `GROQ_API_KEY` | Groq APIキー |
+| `OPENAI_API_KEY` | OpenAI APIキー（Groqのフォールバック用） |
+| `PIXABAY_API_KEY` | Pixabay APIキー |
+| `MONGO_DB_NAME` | 使用するMongoDBのDB名 |
+
+### Docker Compose で起動（Nginx + Backend + PostgreSQL + MongoDB）
+
+```bash
+docker compose up --build
+```
+
+### バックエンドを個別に起動
+
+```bash
 cd backend
 go mod tidy
-go run main.go
+go run cmd/server/main.go
+```
 
-# Frontend (React Native)
-cd frontend
+### モバイルアプリを起動
+
+```bash
+cd mobile
 npm install
-npx react-native run-ios # or run-android
+npx expo start
+```
+
+## 📖 API ドキュメント
+
+Swagger UI: `/swagger/index.html`（サーバー起動後）
+
+バックエンドの変更後は以下でドキュメントを再生成します。
+
+```bash
+cd backend
+swag init -g cmd/server/main.go
+```
+
+モバイル側の型は Orval で生成します。
+
+```bash
+cd mobile
+npm run gen
+```
+
+## 🚀 今後の展望
+
+- **ルート最適化**: スポット間の移動コストを考慮した訪問順序の自動最適化。
+- **収益化**: 提案スポットへのアフィリエイト連携や予約機能の導入。
+- **パーソナライズ**: ユーザーの過去の嗜好を学習した優先表示。
