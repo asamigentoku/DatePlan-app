@@ -2,7 +2,7 @@ module.exports = {
   expo: {
     name: "Lumoria",
     slug: "Lumoria",
-    version: "1.0.0",
+    version: "1.1.0",
     orientation: "portrait",
     icon: "./assets/images/icon.png",
     scheme: "mobile",
@@ -10,6 +10,10 @@ module.exports = {
     newArchEnabled: true,
     ios: {
       supportsTablet: true,
+      infoPlist: {
+        CFBundleDevelopmentRegion: "ja",
+        CFBundleLocalizations: ["ja"],
+      },
     },
     android: {
       adaptiveIcon: {

@@ -2,16 +2,13 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"math/rand/v2"
-	"net/http"
 	"sync"
 
 	"github.com/asamigentoku/DatePlan-app/internal/client"
 	"github.com/asamigentoku/DatePlan-app/internal/dto"
 	"github.com/asamigentoku/DatePlan-app/internal/repository"
-	"github.com/openai/openai-go"
 )
 
 type PlanService interface {
@@ -151,12 +148,6 @@ func urlsToPixabayHits(urls []string) []dto.PixabayHit {
 	return hits
 }
 
-// isRateLimitError はGroq APIがレートリミット(429)を返したかどうかを判定する
-func isRateLimitError(err error) bool {
-	apiErr, ok := errors.AsType[*openai.Error](err)
-	return ok && apiErr.StatusCode == http.StatusTooManyRequests
-}
-
 func (s *planService) MakePlan(req *dto.CreatePlanRequest) (*dto.PlanResponse, error) {
 	cities := req.Locations
 	if len(cities) == 0 {
@@ -243,22 +234,22 @@ func (s *planService) MakePlan(req *dto.CreatePlanRequest) (*dto.PlanResponse, e
 	//	return nil, err
 	//}
 	//fmt.Printf("groqに考えさせた: %+v\n", description)
-	plan, err := s.groqclient.GenerateDatePlan(prompt)
+	plan, err := s.chatgptclient.GenerateDatePlan(prompt)
 	if err != nil {
-		if isRateLimitError(err) && s.chatgptclient != nil {
-			fmt.Println("⚠️ Groqがレートリミットのため、ChatGPTにフォールバック:", err)
-			plan, err = s.chatgptclient.GenerateDatePlan(prompt)
+		if s.groqclient != nil {
+			fmt.Println("⚠️ ChatGPTが失敗したため、Groqにフォールバック:", err)
+			plan, err = s.groqclient.GenerateDatePlan(prompt)
 			if err != nil {
 				fmt.Println("エラー:", err)
 				return nil, err
 			}
-			fmt.Printf("ChatGPTに考えさせた: %+v\n", plan)
+			fmt.Printf("Groqに考えさせた: %+v\n", plan)
 		} else {
 			fmt.Println("エラー:", err)
 			return nil, err
 		}
 	} else {
-		fmt.Printf("groqに考えさせた: %+v\n", plan)
+		fmt.Printf("ChatGPTに考えさせた: %+v\n", plan)
 	}
 
 	// 各スポットに写真・座標を付与する

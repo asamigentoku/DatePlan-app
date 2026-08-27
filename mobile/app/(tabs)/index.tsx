@@ -26,7 +26,6 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSequence,
-  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 
@@ -61,18 +60,20 @@ const CAR_OPTS = ['車なし', '車あり'];
 
 // ─── UI components ─────────────────────────────────────────────────────────
 
-// タップ時に軽く縮んでバネで戻る、操作フィードバック用の共通ラッパー
+// タップ時に軽く縮んで等倍へ戻る、操作フィードバック用の共通ラッパー
 function ScalePress({ onPress, disabled, style, children, activeScale = 0.96 }: {
   onPress?: () => void; disabled?: boolean; style?: any; children: React.ReactNode; activeScale?: number;
 }) {
   const scale = useSharedValue(1);
   const rStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  // A timing animation finishes at exactly 1, avoiding text being left rasterized
+  // at a fractional scale on some devices.
   return (
     <Animated.View style={rStyle}>
       <Pressable
         disabled={disabled}
         onPressIn={() => { scale.value = withTiming(activeScale, { duration: 90 }); }}
-        onPressOut={() => { scale.value = withSpring(1, { damping: 14, stiffness: 260 }); }}
+        onPressOut={() => { scale.value = withTiming(1, { duration: 130 }); }}
         onPress={onPress}
         style={style}>
         {children}
@@ -98,7 +99,7 @@ function IntroScreen({ onStart }: { onStart: () => void }) {
             style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
           />
           <View style={{ marginTop: 39 }}>
-            <Animated.View entering={FadeInDown.delay(60).springify()}>
+            <Animated.View entering={FadeInDown.delay(60).duration(420)}>
               <View
                 style={{
                   alignSelf: 'flex-start',
@@ -112,12 +113,12 @@ function IntroScreen({ onStart }: { onStart: () => void }) {
                 <Text style={{ fontWeight: '700', fontSize: 12.5, color: '#fff' }}>AI デートプランナー</Text>
               </View>
             </Animated.View>
-            <Animated.View entering={FadeInDown.delay(140).springify()}>
+            <Animated.View entering={FadeInDown.delay(140).duration(420)}>
               <Text style={{ fontWeight: '800', fontSize: 32, lineHeight: 40, color: '#fff', marginBottom: 16 }}>
                 ふたりだけの{'\n'}特別な一日を、{'\n'}AIと一緒に。
               </Text>
             </Animated.View>
-            <Animated.View entering={FadeInDown.delay(220).springify()}>
+            <Animated.View entering={FadeInDown.delay(220).duration(420)}>
               <Text style={{ fontWeight: '500', fontSize: 14.5, lineHeight: 22, color: 'rgba(255,255,255,0.86)' }}>
                 気分やエリアを教えるだけで、{'\n'}最適なデートプランを自動で提案します。
               </Text>
@@ -126,7 +127,7 @@ function IntroScreen({ onStart }: { onStart: () => void }) {
 
           <View style={{ gap: 21 }}>
             {INTRO_FEATURES.map((f, i) => (
-              <Animated.View key={f.title} entering={FadeInUp.delay(320 + i * 90).springify()}>
+              <Animated.View key={f.title} entering={FadeInUp.delay(320 + i * 90).duration(420)}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
                   <View
                     style={{
@@ -145,7 +146,7 @@ function IntroScreen({ onStart }: { onStart: () => void }) {
             ))}
           </View>
 
-          <Animated.View entering={FadeInUp.delay(620).springify()} style={{ marginBottom: 28 }}>
+          <Animated.View entering={FadeInUp.delay(620).duration(420)} style={{ marginBottom: 28 }}>
             <ScalePress
               onPress={onStart}
               style={{
@@ -178,7 +179,10 @@ function SectionLabel({ children, opt }: { children: string; opt?: string }) {
 function useSelectBounce(on: boolean) {
   const bounce = useSharedValue(1);
   useEffect(() => {
-    if (on) bounce.value = withSequence(withTiming(1.14, { duration: 100 }), withSpring(1, { damping: 9, stiffness: 220 }));
+    if (on) bounce.value = withSequence(
+      withTiming(1.14, { duration: 100 }),
+      withTiming(1, { duration: 150 }),
+    );
   }, [on, bounce]);
   return useAnimatedStyle(() => ({ transform: [{ scale: bounce.value }] }));
 }
@@ -470,6 +474,7 @@ export default function HomeScreen() {
                         fontSize: 15.5,
                         fontWeight: 700,
                         color: Brand.ink,
+                        colorScheme: 'light',
                       },
                     })}
                   </InputRow>
@@ -486,6 +491,8 @@ export default function HomeScreen() {
                           value={pickedDate ?? new Date()}
                           mode="date"
                           display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                          themeVariant="light"
+                          accentColor={Brand.purple}
                           minimumDate={new Date()}
                           onChange={(_, date) => {
                             if (Platform.OS !== 'ios') setShowDatePicker(false);
@@ -686,10 +693,34 @@ export default function HomeScreen() {
       <Modal visible={areaPickerVisible} animationType="slide" transparent onRequestClose={() => setAreaPickerVisible(false)}>
         <View style={{ flex: 1, backgroundColor: 'rgba(26,16,51,0.45)', justifyContent: 'flex-end' }}>
           <View style={{ backgroundColor: Brand.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 22, paddingTop: 22, paddingBottom: 53, maxHeight: '85%' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontWeight: '800', fontSize: 18, color: Brand.ink }}>
+                  {pickerRegion ?? 'どのあたり？'}
+                </Text>
+                <Text style={{ fontWeight: '600', fontSize: 12, color: Brand.muted, marginTop: 2 }}>
+                  {pickerRegion === null ? 'まず地方を選んでください' : 'デートに行く都道府県を選んでください'}
+                </Text>
+              </View>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="地域選択を閉じる"
+                hitSlop={10}
+                onPress={() => setAreaPickerVisible(false)}
+                style={({ pressed }) => ({
+                  width: 36,
+                  height: 36,
+                  borderRadius: 18,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: Brand.lav,
+                  opacity: pressed ? 0.65 : 1,
+                })}>
+                <Ionicons name="close" size={21} color={Brand.ink2} />
+              </Pressable>
+            </View>
             {pickerRegion === null ? (
               <>
-                <Text style={{ fontWeight: '800', fontSize: 18, color: Brand.ink }}>どのあたり？</Text>
-                <Text style={{ fontWeight: '600', fontSize: 12, color: Brand.muted, marginTop: 2 }}>まず地方を選んでください</Text>
                 <ScrollView style={{ maxHeight: 320, marginTop: 16 }}>
                   {REGION_NAMES.map(r => (
                     <ScalePress key={r} onPress={() => setPickerRegion(r)} activeScale={0.98} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 14, marginBottom: 6, backgroundColor: Brand.bg }}>
@@ -701,8 +732,6 @@ export default function HomeScreen() {
               </>
             ) : (
               <>
-                <Text style={{ fontWeight: '800', fontSize: 18, color: Brand.ink }}>{pickerRegion}</Text>
-                <Text style={{ fontWeight: '600', fontSize: 12, color: Brand.muted, marginTop: 2 }}>デートに行く都道府県を選んでください</Text>
                 <ScrollView style={{ maxHeight: 320, marginTop: 16 }}>
                   {REGIONS[pickerRegion].map(p => (
                     <ScalePress
