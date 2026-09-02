@@ -37,7 +37,7 @@ flowchart LR
     AdminAPI <--> CosmosDB
     AdminAPI <--> Kafka
 
-    Kafka --> Scraping
+    Kafka <--> Scraping
     Kafka <--> ML
     Kafka --> AzureFunction
     AdminAPI --> ChatGPT
