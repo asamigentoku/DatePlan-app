@@ -9,6 +9,7 @@ module.exports = {
     userInterfaceStyle: "light",
     newArchEnabled: true,
     ios: {
+      bundleIdentifier: "com.asamigentoku.lumoria",
       supportsTablet: true,
       infoPlist: {
         CFBundleDevelopmentRegion: "ja",
@@ -16,6 +17,7 @@ module.exports = {
       },
     },
     android: {
+      package: "com.asamigentoku.lumoria",
       adaptiveIcon: {
         backgroundColor: "#E6F4FE",
         foregroundImage: "./assets/images/android-icon-foreground.png",
@@ -55,6 +57,11 @@ module.exports = {
     experiments: {
       typedRoutes: true,
       reactCompiler: true,
+    },
+    extra: {
+      eas: {
+        projectId: "62a27749-e2eb-4a13-b103-dd3048919d6a",
+      },
     },
   },
 };
